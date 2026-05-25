@@ -25,7 +25,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 <%_ } -%>
 import crypto from "crypto";
-<%_ if (orm !== 'drizzle') { -%>
+<%_ if (orm === 'sequelize') { -%>
 import { Op } from "sequelize";
 <%_ } -%>
 
