@@ -1,0 +1,9 @@
+.git
+.github
+tests/
+test-output/
+.idea/
+.vscode/
+*.log
+.env
+coverage/
