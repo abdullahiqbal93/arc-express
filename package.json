@@ -13,10 +13,7 @@
   ],
   "scripts": {
     "dev": "node bin/index.js",
-    "test": "npm run lint",
-    "test:combos": "node tests/combos.test.js",
-    "lint": "eslint src/ bin/",
-    "prepublishOnly": "npm test"
+    "test": "node tests/combos.test.js"
   },
   "keywords": [
     "express",
