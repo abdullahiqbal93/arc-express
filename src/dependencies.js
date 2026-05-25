@@ -71,7 +71,7 @@ const FEATURE_DEPS = {
   fileUpload: {
     deps: {
       'cloudinary': '^2.5.1',
-      'multer':     '^1.4.5-lts.1',
+      'multer':     '^2.1.1',
     },
     devDeps: {},
   },

@@ -159,6 +159,12 @@ async function generatePackageJson(targetDir, context) {
     engines: { node: '>=18.0.0' },
     dependencies,
     devDependencies,
+    overrides: {
+      glob: "^11.0.0",
+      inflight: "^1.0.6",
+      uuid: "^11.0.0",
+      dottie: "^2.0.7"
+    },
   };
 
   // Add DB scripts
