@@ -10,6 +10,8 @@ import { execSync, spawn } from 'child_process';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BASE_OUT = path.join(__dirname, '..', 'test-output');
 
+const allFeatures = { auth: true, database: true, oauth: true, email: true, fileUpload: true, csrf: true, audit: true, docker: true, testing: true, githubActions: true };
+
 const combos = [
   {
     name: 'minimal-js',
@@ -19,31 +21,35 @@ const combos = [
       authStrategy: 'session', orm: 'sequelize', database: 'postgresql',
     },
   },
-  {
-    name: 'all-ts-prisma-jwt',
-    context: {
-      projectName: 'all-ts-prisma-jwt', language: 'typescript',
-      features: { auth: true, database: true, oauth: true, email: true, fileUpload: true, csrf: true, audit: true, docker: true, testing: true, githubActions: true },
-      authStrategy: 'jwt', orm: 'prisma', database: 'postgresql',
-    },
-  },
-  {
-    name: 'all-js-sequelize-session',
-    context: {
-      projectName: 'all-js-sequelize-session', language: 'javascript',
-      features: { auth: true, database: true, oauth: true, email: true, fileUpload: true, csrf: true, audit: true, docker: true, testing: true, githubActions: true },
-      authStrategy: 'session', orm: 'sequelize', database: 'mysql',
-    },
-  },
-  {
-    name: 'all-ts-drizzle-session',
-    context: {
-      projectName: 'all-ts-drizzle-session', language: 'typescript',
-      features: { auth: true, database: true, oauth: true, email: true, fileUpload: true, csrf: true, audit: true, docker: true, testing: true, githubActions: true },
-      authStrategy: 'session', orm: 'drizzle', database: 'postgresql',
-    },
-  }
 ];
+
+const languages = ['javascript', 'typescript'];
+const databases = ['mysql', 'postgresql'];
+const orms = ['drizzle', 'prisma', 'sequelize'];
+
+for (const language of languages) {
+  for (const database of databases) {
+    for (const orm of orms) {
+      const prefix = language === 'javascript' ? 'js' : 'ts';
+      const name = `${prefix}-${database}-${orm}`;
+      
+      // Alternate auth strategy just for extra coverage
+      const authStrategy = orm === 'sequelize' ? 'session' : 'jwt';
+
+      combos.push({
+        name,
+        context: {
+          projectName: name,
+          language,
+          features: allFeatures,
+          authStrategy,
+          orm,
+          database,
+        }
+      });
+    }
+  }
+}
 
 function verifyServerBoot(outDir, name) {
   return new Promise((resolve, reject) => {
