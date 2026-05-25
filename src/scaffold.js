@@ -24,6 +24,9 @@ export async function scaffoldProject(targetDir, context) {
 
   if (context.features.auth) {
     await copyTemplate('auth', targetDir, context);
+    if (context.orm !== 'sequelize') {
+      await fs.remove(path.join(targetDir, 'src', 'db', 'models'));
+    }
   }
 
   if (context.features.oauth) {

@@ -7,15 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ── Add your models below ──────────────────────────────────
-//
-// Example:
-// model User {
-//   id         Int      @id @default(autoincrement())
-//   email      String   @unique
-//   name       String
-//   createdAt  DateTime @default(now()) @map("created_at")
-//   updatedAt  DateTime @updatedAt      @map("updated_at")
-//
-//   @@map("users")
-// }
+<%_ if (features.auth) { -%>
+model User {
+  id                   Int       @id @default(autoincrement())
+  email                String    @unique
+  name                 String
+  passwordHash         String?   @map("password_hash")
+  role                 String    @default("user")
+  status               String    @default("active")
+  googleId             String?   @unique @map("google_id")
+  resetPasswordToken   String?   @map("reset_password_token")
+  resetPasswordExpires DateTime? @map("reset_password_expires")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt      @map("updated_at")
+
+  @@map("users")
+}
+<%_ } else { -%>
+// Add your models here
+<%_ } -%>

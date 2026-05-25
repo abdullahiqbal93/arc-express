@@ -1,0 +1,37 @@
+<%_ if (features.auth) { -%>
+<%_ if (database === 'mysql') { -%>
+import { mysqlTable, int, varchar, timestamp } from "drizzle-orm/mysql-core";
+
+export const users = mysqlTable("users", {
+  id: int("id").primaryKey().autoincrement(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  passwordHash: varchar("password_hash", { length: 255 }),
+  role: varchar("role", { length: 50 }).default("user"),
+  status: varchar("status", { length: 50 }).default("active"),
+  googleId: varchar("google_id", { length: 255 }).unique(),
+  resetPasswordToken: varchar("reset_password_token", { length: 255 }),
+  resetPasswordExpires: timestamp("reset_password_expires"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+<%_ } else { -%>
+import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  passwordHash: text("password_hash"),
+  role: text("role").default("user"),
+  status: text("status").default("active"),
+  googleId: text("google_id").unique(),
+  resetPasswordToken: text("reset_password_token"),
+  resetPasswordExpires: timestamp("reset_password_expires"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+<%_ } -%>
+<%_ } else { -%>
+// Add your Drizzle schemas here
+<%_ } -%>
