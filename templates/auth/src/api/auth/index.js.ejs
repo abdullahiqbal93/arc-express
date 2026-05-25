@@ -2,7 +2,9 @@
 import {
   register, login, logout, me,
   updateProfile, changePassword,
+<%_ if (features.email) { -%>
   forgotPassword, validateResetToken, resetPassword,
+<%_ } -%>
   deleteMyAccount,
 <%_ if (features.oauth) { -%>
   googleRedirect, googleCallback,

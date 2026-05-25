@@ -1,6 +1,7 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
-import { env } from "../config.js";
+import { env } from "../config.<%= ext %>";
 
 cloudinary.config({
   cloud_name: env.CLOUDINARY_CLOUD_NAME,

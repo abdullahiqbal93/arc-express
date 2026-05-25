@@ -1,17 +1,36 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
-<%_ if (database === 'postgresql') { -%>
-import { Sequelize } from "sequelize";
 import { GenericContainer } from "testcontainers";
 import { mainLogger } from "../logger/winston.<%= ext %>";
+<%_ if (orm === 'sequelize') { -%>
+import { Sequelize } from "sequelize";
+<%_ } else if (orm === 'prisma') { -%>
+import { PrismaClient } from "@prisma/client";
+<%_ } else if (orm === 'drizzle') { -%>
+<%_ if (database === 'postgresql') { -%>
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+<%_ } else { -%>
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
+<%_ } -%>
+<%_ } -%>
 
 let container;
-let testSequelize;
+<%_ if (orm === 'sequelize') { -%>
+let testDb;
+<%_ } else if (orm === 'prisma') { -%>
+let testDb;
+<%_ } else if (orm === 'drizzle') { -%>
+let testDb;
+let client;
+<%_ } -%>
 
 /**
- * Start a Postgres testcontainer and return a Sequelize instance.
+ * Start a <%= database %> testcontainer and return a <%= orm %> instance.
  */
 export const setupTestDB = async () => {
   try {
+<%_ if (database === 'postgresql') { -%>
     container = await new GenericContainer("postgres:16-alpine")
       .withExposedPorts(5432)
       .withEnvironment({
@@ -25,34 +44,7 @@ export const setupTestDB = async () => {
     const host = container.getHost();
     const port = container.getMappedPort(5432);
     const url = `postgres://test:test@${host}:${port}/test_db`;
-
-    testSequelize = new Sequelize(url, {
-      dialect: "postgres",
-      logging: false,
-      define: { underscored: true, timestamps: true },
-    });
-
-    await testSequelize.authenticate();
-    mainLogger.info("Test database connected successfully.");
-    return testSequelize;
-  } catch (error) {
-    mainLogger.error("Error setting up test database:", error);
-    throw error;
-  }
-};
 <%_ } else { -%>
-import { Sequelize } from "sequelize";
-import { GenericContainer } from "testcontainers";
-import { mainLogger } from "../logger/winston.<%= ext %>";
-
-let container;
-let testSequelize;
-
-/**
- * Start a MySQL testcontainer and return a Sequelize instance.
- */
-export const setupTestDB = async () => {
-  try {
     container = await new GenericContainer("mysql:8.0")
       .withExposedPorts(3306)
       .withEnvironment({
@@ -65,29 +57,57 @@ export const setupTestDB = async () => {
     const host = container.getHost();
     const port = container.getMappedPort(3306);
     const url = `mysql://root:test@${host}:${port}/test_db`;
+<%_ } -%>
 
-    testSequelize = new Sequelize(url, {
-      dialect: "mysql",
+<%_ if (orm === 'sequelize') { -%>
+    testDb = new Sequelize(url, {
+      dialect: "<%= database === 'mysql' ? 'mysql' : 'postgres' %>",
       logging: false,
       define: { underscored: true, timestamps: true },
     });
+    await testDb.authenticate();
+<%_ } else if (orm === 'prisma') { -%>
+    testDb = new PrismaClient({
+      datasources: { db: { url } },
+      log: [],
+    });
+    await testDb.$connect();
+<%_ } else if (orm === 'drizzle') { -%>
+<%_ if (database === 'postgresql') { -%>
+    client = postgres(url);
+    testDb = drizzle(client);
+    await client`SELECT 1`; // Test connection
+<%_ } else { -%>
+    client = await mysql.createPool(url);
+    testDb = drizzle(client);
+    await client.query("SELECT 1"); // Test connection
+<%_ } -%>
+<%_ } -%>
 
-    await testSequelize.authenticate();
     mainLogger.info("Test database connected successfully.");
-    return testSequelize;
+    return testDb;
   } catch (error) {
     mainLogger.error("Error setting up test database:", error);
     throw error;
   }
 };
-<%_ } -%>
 
 /**
  * Tear down container and close connection.
  */
 export const teardownTestDB = async () => {
-  if (testSequelize) await testSequelize.close();
+<%_ if (orm === 'sequelize') { -%>
+  if (testDb) await testDb.close();
+<%_ } else if (orm === 'prisma') { -%>
+  if (testDb) await testDb.$disconnect();
+<%_ } else if (orm === 'drizzle') { -%>
+<%_ if (database === 'postgresql') { -%>
+  if (client) await client.end();
+<%_ } else { -%>
+  if (client) await client.end();
+<%_ } -%>
+<%_ } -%>
   if (container) await container.stop();
 };
 
-export { testSequelize };
+export { testDb };

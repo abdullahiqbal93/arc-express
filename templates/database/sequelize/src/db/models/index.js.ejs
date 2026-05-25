@@ -1,9 +1,10 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 /**
  * Central model registry.
  * Import and re-export all models here, then define associations.
  *
  * Example:
- *   import User from "./user.js";
+ *   import User from "./user.<%= ext %>";
  *   User.hasMany(Post);
  *   export { User };
  */

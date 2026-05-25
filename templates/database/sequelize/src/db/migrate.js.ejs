@@ -1,13 +1,14 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 /**
  * Database migration runner.
- * Usage: node src/db/migrate.js [up|down]
+ * Usage: npx tsx src/db/migrate.<%= ext %> [up|down]
  *
  * For production, consider using sequelize-cli:
  *   npx sequelize-cli db:migrate
  */
 
-import sequelize from "../lib/db/connect.js";
-import { mainLogger } from "../lib/logger/winston.js";
+import sequelize from "../lib/db/connect.<%= ext %>";
+import { mainLogger } from "../lib/logger/winston.<%= ext %>";
 
 const direction = process.argv[2] || "up";
 
