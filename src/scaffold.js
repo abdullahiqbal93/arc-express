@@ -160,10 +160,7 @@ async function generatePackageJson(targetDir, context) {
     dependencies,
     devDependencies,
     overrides: {
-      glob: "^11.0.0",
-      inflight: "^1.0.6",
-      uuid: "^11.0.0",
-      dottie: "^2.0.7"
+      uuid: "^11.0.0"
     },
   };
 

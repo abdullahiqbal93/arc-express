@@ -94,10 +94,10 @@ const FEATURE_DEPS = {
   testing: {
     deps: {},
     devDeps: {
-      'jest':             '^29.0.0',
-      'supertest':        '^7.0.0',
-      '@faker-js/faker':  '^9.4.0',
-      'testcontainers':   '^11.12.0',
+      'jest':             '^30.4.2',
+      'supertest':        '^7.2.2',
+      '@faker-js/faker':  '^10.4.0',
+      'testcontainers':   '^12.0.0',
       'kill-port':        '^2.0.1',
     },
   },
@@ -152,7 +152,7 @@ const DB_DRIVER_DEPS = {
 
 const TS_DEV_DEPS = {
   'typescript':     '^5.8.0',
-  'tsx':            '^4.19.0',
+  'tsx':            '^4.22.3',
   '@types/node':    '^22.0.0',
   '@types/express': '^5.0.0',
   '@types/cors':    '^2.8.17',
@@ -165,7 +165,7 @@ const TS_FEATURE_DEV_DEPS = {
   'auth-jwt': { '@types/jsonwebtoken': '^9.0.9' },
   email:      { '@types/nodemailer': '^6.4.17' },
   fileUpload: { '@types/multer': '^1.4.12' },
-  testing:    { '@types/jest': '^29.0.0', '@types/supertest': '^6.0.2' },
+  testing:    { '@types/jest': '^30.4.2', '@types/supertest': '^6.0.2' },
   csrf:       {},
   audit:      {},
   oauth:      {},
