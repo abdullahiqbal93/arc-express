@@ -157,6 +157,8 @@ async function generatePackageJson(targetDir, context) {
         ? 'tsx watch src/app.ts'
         : 'nodemon src/app.js',
       start: `${runner} src/app.${ext}`,
+      lint: 'eslint src/',
+      format: 'prettier --write "src/**/*.{js,ts,json}"',
       prepare: 'husky || true',
     },
     engines: { node: '>=18.0.0' },

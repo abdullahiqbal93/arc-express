@@ -24,6 +24,9 @@ const BASE_DEV_DEPS = {
   'nodemon':   '^3.1.9',
   'eslint':    '^9.0.0',
   'prettier':  '^3.4.2',
+  'eslint-config-prettier': '^9.1.0',
+  'eslint-plugin-prettier': '^5.2.1',
+  'globals':   '^15.0.0',
   'husky':     '^9.1.7',
 };
 
@@ -154,6 +157,7 @@ const DB_DRIVER_DEPS = {
 const TS_DEV_DEPS = {
   'typescript':     '^5.8.0',
   'tsx':            '^4.22.3',
+  'typescript-eslint': '^8.0.0',
   '@types/node':    '^22.0.0',
   '@types/express': '^5.0.0',
   '@types/cors':    '^2.8.17',
