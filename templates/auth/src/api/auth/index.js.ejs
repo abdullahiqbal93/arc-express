@@ -1,0 +1,59 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import {
+  register, login, logout, me,
+  updateProfile, changePassword,
+  forgotPassword, validateResetToken, resetPassword,
+  deleteMyAccount,
+<%_ if (features.oauth) { -%>
+  googleRedirect, googleCallback,
+<%_ } -%>
+} from "./controller.<%= ext %>";
+import {
+  registerSchema, loginSchema,
+  updateProfileSchema, changePasswordSchema,
+  forgotPasswordSchema, resetPasswordSchema, validateResetTokenSchema,
+  deleteAccountSchema,
+} from "./schema/index.<%= ext %>";
+import { validateRequestBody } from "../../lib/middlewares/validate.<%= ext %>";
+import { requireAuth } from "../../lib/middlewares/require-auth.<%= ext %>";
+import { loginRateLimiter } from "../../lib/middlewares/rate-limiter.<%= ext %>";
+<%_ if (features.csrf) { -%>
+import { generateCsrfToken } from "../../lib/middlewares/csrf.<%= ext %>";
+<%_ } -%>
+
+export const auth = (router) => {
+<%_ if (features.csrf) { -%>
+  router.get("/auth/csrf-token", (req, res) => {
+    req.session.csrfInit = true;
+    const token = generateCsrfToken(req, res, { overwrite: true });
+    req.session.save((err) => {
+      if (err) return res.status(500).json({ success: false, message: "Session error" });
+      res.json({ success: true, data: { csrfToken: token } });
+    });
+  });
+
+<%_ } -%>
+  router.post("/auth/register", loginRateLimiter, validateRequestBody(registerSchema), register);
+  router.post("/auth/login", loginRateLimiter, validateRequestBody(loginSchema), login);
+  router.post("/auth/logout", logout);
+  router.get("/auth/me", requireAuth, me);
+
+  router.patch("/auth/profile", requireAuth, validateRequestBody(updateProfileSchema), updateProfile);
+  router.patch("/auth/password", requireAuth, validateRequestBody(changePasswordSchema), changePassword);
+
+<%_ if (features.email) { -%>
+  router.post("/auth/forgot-password", loginRateLimiter, validateRequestBody(forgotPasswordSchema), forgotPassword);
+  router.post("/auth/validate-reset-token", validateRequestBody(validateResetTokenSchema), validateResetToken);
+  router.post("/auth/reset-password", loginRateLimiter, validateRequestBody(resetPasswordSchema), resetPassword);
+<%_ } -%>
+
+  router.delete("/auth/account", requireAuth, validateRequestBody(deleteAccountSchema), deleteMyAccount);
+
+<%_ if (features.oauth) { -%>
+  /* Google OAuth */
+  router.get("/auth/google", googleRedirect);
+  router.post("/auth/google/callback", googleCallback);
+<%_ } -%>
+
+  return router;
+};

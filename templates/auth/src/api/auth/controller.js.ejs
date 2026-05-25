@@ -1,0 +1,505 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+<%_ if (orm === 'sequelize') { -%>
+import User from "../../db/models/user.<%= ext %>";
+import sequelize from "../../lib/db/connect.<%= ext %>";
+<%_ } else if (orm === 'prisma') { -%>
+import prisma from "../../lib/db/connect.<%= ext %>";
+<%_ } else if (orm === 'drizzle') { -%>
+import db from "../../lib/db/connect.<%= ext %>";
+import { users } from "../../db/schema/index.<%= ext %>";
+import { eq } from "drizzle-orm";
+<%_ } -%>
+import { createErrorResponse } from "../../lib/services/error.<%= ext %>";
+import { createSuccessResponse } from "../../lib/services/success.<%= ext %>";
+import { handleError } from "../../lib/utils/error-handle.<%= ext %>";
+<%_ if (features.audit) { -%>
+import { writeAuditLog } from "../../lib/services/audit.<%= ext %>";
+<%_ } -%>
+<%_ if (features.email) { -%>
+import { sendPasswordResetEmail } from "../../lib/utils/email.<%= ext %>";
+<%_ } -%>
+import { env } from "../../lib/config.<%= ext %>";
+import { StatusCodes } from "http-status-codes";
+import bcrypt from "bcryptjs";
+<%_ if (authStrategy === 'jwt') { -%>
+import jwt from "jsonwebtoken";
+<%_ } -%>
+import crypto from "crypto";
+<%_ if (orm !== 'drizzle') { -%>
+import { Op } from "sequelize";
+<%_ } -%>
+
+<%_ if (authStrategy === 'jwt') { -%>
+function signToken(userId) {
+  return jwt.sign({ userId }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+}
+<%_ } -%>
+
+<%
+// Helper to get a user from DB based on ORM
+const findByEmail = (varName, email) => {
+  if (orm === 'sequelize') return `const ${varName} = await User.findOne({ where: { email: ${email} } });`;
+  if (orm === 'prisma') return `const ${varName} = await prisma.user.findUnique({ where: { email: ${email} } });`;
+  if (orm === 'drizzle') return `const [${varName}] = await db.select().from(users).where(eq(users.email, ${email})).limit(1);`;
+};
+const findById = (varName, id) => {
+  if (orm === 'sequelize') return `const ${varName} = await User.findByPk(${id});`;
+  if (orm === 'prisma') return `const ${varName} = await prisma.user.findUnique({ where: { id: ${id} } });`;
+  if (orm === 'drizzle') return `const [${varName}] = await db.select().from(users).where(eq(users.id, ${id})).limit(1);`;
+};
+-%>
+// ── Register ──────────────────────────────────────────────────
+export const register = async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+
+    <%- findByEmail('existing', 'email') %>
+    if (existing) {
+      return createErrorResponse(res, null, StatusCodes.CONFLICT, "User already exists");
+    }
+
+    const salt = await bcrypt.genSalt(env.SALT_FACTOR);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+<%_ if (orm === 'sequelize') { -%>
+    const user = await User.create({ email, password_hash: passwordHash, name });
+<%_ } else if (orm === 'prisma') { -%>
+    const user = await prisma.user.create({ data: { email, passwordHash, name } });
+<%_ } else if (orm === 'drizzle') { -%>
+    const [user] = await db.insert(users).values({ email, passwordHash, name }).returning();
+<%_ } -%>
+
+<%_ if (authStrategy === 'session') { -%>
+    req.session.userId = user.id;
+<%_ } -%>
+<%_ if (features.audit) { -%>
+    await writeAuditLog({ userId: user.id, action: "register", entityType: "user", entityId: user.id, req });
+<%_ } -%>
+
+    createSuccessResponse(
+      res,
+<%_ if (authStrategy === 'jwt') { -%>
+      { user: { id: user.id, email: user.email, name: user.name }, token: signToken(user.id) },
+<%_ } else { -%>
+      { id: user.id, email: user.email, name: user.name },
+<%_ } -%>
+      StatusCodes.CREATED,
+      "Registration successful"
+    );
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// ── Login ─────────────────────────────────────────────────────
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    <%- findByEmail('user', 'email') %>
+    if (!user) {
+      return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "No account found with this email.");
+    }
+
+<%_ if (orm === 'sequelize') { -%>
+    if (!user.password_hash) {
+<%_ } else { -%>
+    if (!user.passwordHash) {
+<%_ } -%>
+      return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "This account uses social login.");
+    }
+
+<%_ if (orm === 'sequelize') { -%>
+    const valid = await bcrypt.compare(password, user.password_hash);
+<%_ } else { -%>
+    const valid = await bcrypt.compare(password, user.passwordHash);
+<%_ } -%>
+    if (!valid) {
+      return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Incorrect password.");
+    }
+
+    if (user.status === "suspended") {
+      return createErrorResponse(res, null, StatusCodes.FORBIDDEN, "Your account has been suspended.");
+    }
+
+<%_ if (authStrategy === 'session') { -%>
+    req.session.userId = user.id;
+<%_ } -%>
+<%_ if (features.audit) { -%>
+    await writeAuditLog({ userId: user.id, action: "login", entityType: "user", entityId: user.id, req });
+<%_ } -%>
+
+    createSuccessResponse(
+      res,
+<%_ if (authStrategy === 'jwt') { -%>
+      { user: { id: user.id, email: user.email, name: user.name }, token: signToken(user.id) },
+<%_ } else { -%>
+      { id: user.id, email: user.email, name: user.name },
+<%_ } -%>
+      StatusCodes.OK,
+      "Login successful"
+    );
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// ── Logout ────────────────────────────────────────────────────
+export const logout = async (req, res) => {
+  try {
+<%_ if (authStrategy === 'session') { -%>
+    const userId = req.session?.userId;
+    req.session.destroy((err) => {
+      if (err) return createErrorResponse(res, handleError(err), StatusCodes.INTERNAL_SERVER_ERROR);
+      res.clearCookie("connect.sid");
+<%_ if (features.audit) { -%>
+      if (userId) writeAuditLog({ userId, action: "logout", entityType: "user", entityId: userId, req });
+<%_ } -%>
+      return createSuccessResponse(res, null, StatusCodes.OK, "Logout successful");
+    });
+<%_ } else { -%>
+    // JWT is stateless — client discards the token
+    createSuccessResponse(res, null, StatusCodes.OK, "Logout successful");
+<%_ } -%>
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// ── Me ────────────────────────────────────────────────────────
+export const me = async (req, res) => {
+  try {
+    <%- findById('user', 'req.userId') %>
+    if (!user) {
+      return createErrorResponse(res, null, StatusCodes.NOT_FOUND, "User not found");
+    }
+<%_ if (orm === 'sequelize') { -%>
+    const data = user.toJSON();
+    delete data.password_hash;
+<%_ } else { -%>
+    const { passwordHash, ...data } = user;
+<%_ } -%>
+    createSuccessResponse(res, data, StatusCodes.OK);
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// ── Update Profile ────────────────────────────────────────────
+export const updateProfile = async (req, res) => {
+  try {
+    <%- findById('user', 'req.userId') %>
+    if (!user) return createErrorResponse(res, null, StatusCodes.NOT_FOUND, "User not found");
+
+    const { name, email } = req.body;
+
+<%_ if (orm === 'sequelize') { -%>
+    if (email && email !== user.email) {
+      const taken = await User.findOne({ where: { email, id: { [Op.ne]: user.id } } });
+      if (taken) return createErrorResponse(res, null, StatusCodes.CONFLICT, "Email already in use");
+      user.email = email;
+    }
+    if (name) user.name = name;
+    await user.save();
+    createSuccessResponse(res, { id: user.id, email: user.email, name: user.name }, StatusCodes.OK, "Profile updated");
+<%_ } else if (orm === 'prisma') { -%>
+    if (email && email !== user.email) {
+      const taken = await prisma.user.findFirst({ where: { email, NOT: { id: user.id } } });
+      if (taken) return createErrorResponse(res, null, StatusCodes.CONFLICT, "Email already in use");
+    }
+    const updated = await prisma.user.update({ where: { id: req.userId }, data: { ...(name && { name }), ...(email && { email }) } });
+    createSuccessResponse(res, { id: updated.id, email: updated.email, name: updated.name }, StatusCodes.OK, "Profile updated");
+<%_ } else { -%>
+    const updated = await db.update(users).set({ ...(name && { name }), ...(email && { email }) }).where(eq(users.id, req.userId)).returning();
+    createSuccessResponse(res, updated[0], StatusCodes.OK, "Profile updated");
+<%_ } -%>
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// ── Change Password ───────────────────────────────────────────
+export const changePassword = async (req, res) => {
+  try {
+    <%- findById('user', 'req.userId') %>
+    if (!user) return createErrorResponse(res, null, StatusCodes.NOT_FOUND, "User not found");
+
+    const { current_password = "", new_password } = req.body;
+<%_ if (orm === 'sequelize') { -%>
+    const hash = user.password_hash;
+<%_ } else { -%>
+    const hash = user.passwordHash;
+<%_ } -%>
+
+    if (hash) {
+      if (!current_password.trim()) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Current password is required");
+      const valid = await bcrypt.compare(current_password, hash);
+      if (!valid) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Current password is incorrect");
+    }
+
+    const salt = await bcrypt.genSalt(env.SALT_FACTOR);
+    const newHash = await bcrypt.hash(new_password, salt);
+
+<%_ if (orm === 'sequelize') { -%>
+    user.password_hash = newHash;
+    await user.save();
+<%_ } else if (orm === 'prisma') { -%>
+    await prisma.user.update({ where: { id: req.userId }, data: { passwordHash: newHash } });
+<%_ } else { -%>
+    await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, req.userId));
+<%_ } -%>
+
+    createSuccessResponse(res, null, StatusCodes.OK, "Password changed");
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+<%_ if (features.email) { -%>
+// ── Forgot Password ──────────────────────────────────────────
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    <%- findByEmail('user', 'email') %>
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+      const expires = new Date(Date.now() + 60 * 60 * 1000);
+
+<%_ if (orm === 'sequelize') { -%>
+      user.reset_password_token = hashedToken;
+      user.reset_password_expires = expires;
+      await user.save();
+<%_ } else if (orm === 'prisma') { -%>
+      await prisma.user.update({ where: { id: user.id }, data: { resetPasswordToken: hashedToken, resetPasswordExpires: expires } });
+<%_ } else { -%>
+      await db.update(users).set({ resetPasswordToken: hashedToken, resetPasswordExpires: expires }).where(eq(users.id, user.id));
+<%_ } -%>
+      await sendPasswordResetEmail(email, rawToken, user.name);
+    }
+    createSuccessResponse(res, null, StatusCodes.OK, "If that email is registered, a reset link has been sent");
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// ── Validate Reset Token ─────────────────────────────────────
+export const validateResetToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const hashed = crypto.createHash("sha256").update(token).digest("hex");
+
+<%_ if (orm === 'sequelize') { -%>
+    const user = await User.findOne({
+      where: { reset_password_token: hashed, reset_password_expires: { [Op.gt]: new Date() } },
+    });
+<%_ } else if (orm === 'prisma') { -%>
+    const user = await prisma.user.findFirst({
+      where: { resetPasswordToken: hashed, resetPasswordExpires: { gt: new Date() } },
+    });
+<%_ } else { -%>
+    const [user] = await db.select().from(users)
+      .where(eq(users.resetPasswordToken, hashed))
+      .limit(1);
+<%_ } -%>
+
+    if (!user) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Invalid or expired reset token");
+    createSuccessResponse(res, { valid: true }, StatusCodes.OK);
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// ── Reset Password ───────────────────────────────────────────
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    const hashed = crypto.createHash("sha256").update(token).digest("hex");
+
+<%_ if (orm === 'sequelize') { -%>
+    const user = await User.findOne({
+      where: { reset_password_token: hashed, reset_password_expires: { [Op.gt]: new Date() } },
+    });
+<%_ } else if (orm === 'prisma') { -%>
+    const user = await prisma.user.findFirst({
+      where: { resetPasswordToken: hashed, resetPasswordExpires: { gt: new Date() } },
+    });
+<%_ } else { -%>
+    const [user] = await db.select().from(users)
+      .where(eq(users.resetPasswordToken, hashed))
+      .limit(1);
+<%_ } -%>
+    if (!user) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Invalid or expired reset token");
+
+    const salt = await bcrypt.genSalt(env.SALT_FACTOR);
+    const newHash = await bcrypt.hash(password, salt);
+
+<%_ if (orm === 'sequelize') { -%>
+    user.password_hash = newHash;
+    user.reset_password_token = null;
+    user.reset_password_expires = null;
+    await user.save();
+<%_ } else if (orm === 'prisma') { -%>
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash, resetPasswordToken: null, resetPasswordExpires: null } });
+<%_ } else { -%>
+    await db.update(users).set({ passwordHash: newHash, resetPasswordToken: null, resetPasswordExpires: null }).where(eq(users.id, user.id));
+<%_ } -%>
+
+    createSuccessResponse(res, null, StatusCodes.OK, "Password has been reset");
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+<%_ } -%>
+
+// ── Delete Account ───────────────────────────────────────────
+export const deleteMyAccount = async (req, res) => {
+  try {
+    <%- findById('user', 'req.userId') %>
+    if (!user) return createErrorResponse(res, null, StatusCodes.NOT_FOUND, "User not found");
+
+<%_ if (orm === 'sequelize') { -%>
+    if (user.password_hash) {
+<%_ } else { -%>
+    if (user.passwordHash) {
+<%_ } -%>
+      const { password = "" } = req.body;
+      if (!password.trim()) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Password is required");
+<%_ if (orm === 'sequelize') { -%>
+      const valid = await bcrypt.compare(password, user.password_hash);
+<%_ } else { -%>
+      const valid = await bcrypt.compare(password, user.passwordHash);
+<%_ } -%>
+      if (!valid) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Incorrect password");
+    }
+
+<%_ if (orm === 'sequelize') { -%>
+    await user.destroy();
+<%_ } else if (orm === 'prisma') { -%>
+    await prisma.user.delete({ where: { id: req.userId } });
+<%_ } else { -%>
+    await db.delete(users).where(eq(users.id, req.userId));
+<%_ } -%>
+
+<%_ if (authStrategy === 'session') { -%>
+    req.session.destroy(() => {});
+    res.clearCookie("connect.sid");
+<%_ } -%>
+
+    return createSuccessResponse(res, null, StatusCodes.OK, "Your account has been permanently deleted");
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+<%_ if (features.oauth) { -%>
+// ── Google OAuth ─────────────────────────────────────────────
+export const googleRedirect = (req, res) => {
+  const params = new URLSearchParams({
+    client_id: env.GOOGLE_CLIENT_ID,
+    redirect_uri: env.GOOGLE_CALLBACK_URL,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "select_account",
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+};
+
+export const googleCallback = async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Authorization code is required");
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        client_id: env.GOOGLE_CLIENT_ID,
+        client_secret: env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: env.GOOGLE_CALLBACK_URL,
+        grant_type: "authorization_code",
+      }),
+    });
+    const tokenData = await tokenRes.json();
+    if (tokenData.error) {
+      return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, `Google token error: ${tokenData.error_description || tokenData.error}`);
+    }
+
+    const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const googleUser = await userInfoRes.json();
+    if (!googleUser.email) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Could not retrieve email from Google");
+
+    // Find or create user
+<%_ if (orm === 'sequelize') { -%>
+    let user = await User.findOne({ where: { google_id: googleUser.id } });
+    if (!user) {
+      user = await User.findOne({ where: { email: googleUser.email } });
+      if (user) {
+        user.google_id = googleUser.id;
+        await user.save();
+      } else {
+        user = await User.create({
+          email: googleUser.email,
+          name: googleUser.name || googleUser.email.split("@")[0],
+          google_id: googleUser.id,
+          password_hash: null,
+        });
+      }
+    }
+<%_ } else if (orm === 'prisma') { -%>
+    let user = await prisma.user.findFirst({ where: { googleId: googleUser.id } });
+    if (!user) {
+      user = await prisma.user.findUnique({ where: { email: googleUser.email } });
+      if (user) {
+        user = await prisma.user.update({ where: { id: user.id }, data: { googleId: googleUser.id } });
+      } else {
+        user = await prisma.user.create({
+          data: {
+            email: googleUser.email,
+            name: googleUser.name || googleUser.email.split("@")[0],
+            googleId: googleUser.id,
+          },
+        });
+      }
+    }
+<%_ } else { -%>
+    let [user] = await db.select().from(users).where(eq(users.googleId, googleUser.id)).limit(1);
+    if (!user) {
+      [user] = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
+      if (user) {
+        await db.update(users).set({ googleId: googleUser.id }).where(eq(users.id, user.id));
+      } else {
+        [user] = await db.insert(users).values({
+          email: googleUser.email,
+          name: googleUser.name || googleUser.email.split("@")[0],
+          googleId: googleUser.id,
+        }).returning();
+      }
+    }
+<%_ } -%>
+
+    if (user.status === "suspended") return createErrorResponse(res, null, StatusCodes.FORBIDDEN, "Your account has been suspended");
+
+<%_ if (authStrategy === 'session') { -%>
+    req.session.userId = user.id;
+<%_ } -%>
+
+    createSuccessResponse(
+      res,
+<%_ if (authStrategy === 'jwt') { -%>
+      { user: { id: user.id, email: user.email, name: user.name }, token: signToken(user.id) },
+<%_ } else { -%>
+      { id: user.id, email: user.email, name: user.name },
+<%_ } -%>
+      StatusCodes.OK,
+      "Google login successful"
+    );
+  } catch (e) {
+    createErrorResponse(res, handleError(e), StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+<%_ } -%>

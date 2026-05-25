@@ -1,0 +1,61 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import { StatusCodes } from "http-status-codes";
+import { createErrorResponse } from "../services/error.<%= ext %>";
+<%_ if (orm === 'sequelize') { -%>
+import User from "../../db/models/user.<%= ext %>";
+<%_ } else if (orm === 'prisma') { -%>
+import prisma from "../db/connect.<%= ext %>";
+<%_ } else if (orm === 'drizzle') { -%>
+import db from "../db/connect.<%= ext %>";
+import { users } from "../../db/schema/index.<%= ext %>";
+import { eq } from "drizzle-orm";
+<%_ } -%>
+<%_ if (authStrategy === 'jwt') { -%>
+import jwt from "jsonwebtoken";
+import { env } from "../config.<%= ext %>";
+<%_ } -%>
+
+/**
+ * Middleware to require an authenticated user.
+ * Rejects suspended users. Attaches req.userId for downstream handlers.
+ */
+export const requireAuth = async (req, res, next) => {
+<%_ if (authStrategy === 'session') { -%>
+  if (!req.session || !req.session.userId) {
+    return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Authentication required");
+  }
+  const userId = req.session.userId;
+<%_ } else { -%>
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Authentication required");
+  }
+  try {
+    const decoded = jwt.verify(authHeader.split(" ")[1], env.JWT_SECRET);
+    var userId = decoded.userId;
+  } catch {
+    return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Invalid or expired token");
+  }
+<%_ } -%>
+
+  try {
+<%_ if (orm === 'sequelize') { -%>
+    const user = await User.findByPk(userId, { attributes: ["id", "status"] });
+<%_ } else if (orm === 'prisma') { -%>
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, status: true } });
+<%_ } else { -%>
+    const [user] = await db.select({ id: users.id, status: users.status }).from(users).where(eq(users.id, userId)).limit(1);
+<%_ } -%>
+    if (!user || user.status === "suspended") {
+<%_ if (authStrategy === 'session') { -%>
+      req.session.destroy(() => {});
+<%_ } -%>
+      return createErrorResponse(res, null, StatusCodes.FORBIDDEN, "Your account has been suspended");
+    }
+    req.userId = user.id;
+    next();
+  } catch {
+    req.userId = userId;
+    next();
+  }
+};
