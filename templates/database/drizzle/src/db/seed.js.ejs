@@ -1,0 +1,31 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+/**
+ * Database seeder.
+ * Usage: npm run db:seed
+ */
+
+<%_ if (database === 'postgresql') { -%>
+import db, { client } from "../lib/db/connect.<%= ext %>";
+<%_ } else { -%>
+import db, { pool } from "../lib/db/connect.<%= ext %>";
+<%_ } -%>
+import { mainLogger } from "../lib/logger/winston.<%= ext %>";
+
+async function seed() {
+  try {
+    mainLogger.info("Seeding database...");
+    // Add seed logic here
+    mainLogger.info("Seeding complete.");
+  } catch (error) {
+    mainLogger.error("Seeding failed:", error);
+    process.exit(1);
+  } finally {
+<%_ if (database === 'postgresql') { -%>
+    await client.end();
+<%_ } else { -%>
+    await pool.end();
+<%_ } -%>
+  }
+}
+
+seed();

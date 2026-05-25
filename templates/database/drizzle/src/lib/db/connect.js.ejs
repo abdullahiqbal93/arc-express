@@ -10,10 +10,10 @@ import { env } from "../config.<%= ext %>";
 import { mainLogger } from "../logger/winston.<%= ext %>";
 
 <%_ if (database === 'postgresql') { -%>
-const client = postgres(env.DATABASE_URL);
+export const client = postgres(env.DATABASE_URL);
 const db = drizzle(client);
 <%_ } else { -%>
-const pool = mysql.createPool(env.DATABASE_URL);
+export const pool = mysql.createPool(env.DATABASE_URL);
 const db = drizzle(pool);
 <%_ } -%>
 

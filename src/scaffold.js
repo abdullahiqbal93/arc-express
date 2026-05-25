@@ -180,7 +180,7 @@ async function generatePackageJson(targetDir, context) {
       pkg.scripts['db:studio'] = 'npx prisma studio';
     } else if (context.orm === 'drizzle') {
       pkg.scripts['db:generate'] = 'npx drizzle-kit generate';
-      pkg.scripts['db:migrate'] = 'npx drizzle-kit migrate';
+      pkg.scripts['db:migrate'] = `${runner} src/db/migrate.${ext}`;
       pkg.scripts['db:seed'] = `${runner} src/db/seed.${ext}`;
       pkg.scripts['db:studio'] = 'npx drizzle-kit studio';
     }

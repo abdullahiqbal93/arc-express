@@ -1,0 +1,35 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+/**
+ * Database migration runner for Drizzle ORM.
+ * Usage: npm run db:migrate
+ *
+ * This script allows migrations to run in production without needing `drizzle-kit` (which is a devDependency).
+ */
+
+<%_ if (database === 'postgresql') { -%>
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import db, { client } from "../lib/db/connect.<%= ext %>";
+<%_ } else { -%>
+import { migrate } from "drizzle-orm/mysql2/migrator";
+import db, { pool } from "../lib/db/connect.<%= ext %>";
+<%_ } -%>
+import { mainLogger } from "../lib/logger/winston.<%= ext %>";
+
+async function run() {
+  try {
+    mainLogger.info("Applying Drizzle migrations...");
+    await migrate(db, { migrationsFolder: "./src/db/migrations" });
+    mainLogger.info("Migrations applied successfully.");
+  } catch (error) {
+    mainLogger.error("Migration failed:", error);
+    process.exit(1);
+  } finally {
+<%_ if (database === 'postgresql') { -%>
+    await client.end();
+<%_ } else { -%>
+    await pool.end();
+<%_ } -%>
+  }
+}
+
+run();
