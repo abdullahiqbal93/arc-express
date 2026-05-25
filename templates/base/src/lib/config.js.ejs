@@ -1,0 +1,57 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const env = {
+  VERSION: "v1",
+  NODE_ENV: process.env.NODE_ENV || "development",
+  PORT: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
+  CLIENT_BASE_URL: process.env.CLIENT_BASE_URL || "http://localhost:5173",
+  API_BASE_URL: process.env.API_BASE_URL || "http://localhost:3000/api/v1",
+<%_ if (features.database) { -%>
+  DATABASE_URL: process.env.DATABASE_URL || "",
+<%_ } -%>
+<%_ if (features.auth) { -%>
+  SALT_FACTOR: parseInt(process.env.SALT_FACTOR<%= language === 'typescript' ? ' || ""' : '' %>, 10) || 10,
+<%_ } -%>
+<%_ if (features.auth && authStrategy === 'session') { -%>
+  SESSION_SECRET: (() => {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret && process.env.NODE_ENV === "production") {
+      throw new Error("SESSION_SECRET env var is required in production");
+    }
+    return secret || "dev-only-insecure-fallback";
+  })(),
+<%_ } -%>
+<%_ if (features.auth && authStrategy === 'jwt') { -%>
+  JWT_SECRET: (() => {
+    const secret = process.env.JWT_SECRET;
+    if (!secret && process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET env var is required in production");
+    }
+    return secret || "dev-only-insecure-fallback";
+  })(),
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
+<%_ } -%>
+<%_ if (features.email) { -%>
+  SMTP_HOST: process.env.SMTP_HOST || "",
+  SMTP_PORT: process.env.SMTP_PORT || "587",
+  SMTP_SECURE: process.env.SMTP_SECURE || "false",
+  SMTP_USER: process.env.SMTP_USER || "",
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD || "",
+  EMAIL_FROM: process.env.EMAIL_FROM || "",
+<%_ } -%>
+<%_ if (features.oauth) { -%>
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
+  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:5173/auth/google/callback",
+<%_ } -%>
+<%_ if (features.fileUpload) { -%>
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || "",
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
+<%_ } -%>
+}<%= language === 'typescript' ? ' as const' : '' %>;
+
+export const API_PATH = `/api/${env.VERSION}/`;

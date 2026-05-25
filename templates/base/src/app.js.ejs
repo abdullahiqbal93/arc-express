@@ -1,0 +1,72 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import { mainLogger } from "./lib/logger/winston.<%= ext %>";
+import { welcome } from "./lib/welcome.<%= ext %>";
+import { getServer } from "./lib/server.<%= ext %>";
+import { env } from "./lib/config.<%= ext %>";
+<%_ if (features.database) { -%>
+import { connectDB } from "./lib/db/connect.<%= ext %>";
+<%_ } -%>
+<%_ if (features.email) { -%>
+import { initializeEmailTransporter } from "./lib/utils/email.<%= ext %>";
+<%_ } -%>
+
+process.on("unhandledRejection", (reason, promise) => {
+  mainLogger.error("Unhandled Rejection at:", { reason, promise });
+});
+
+process.on("uncaughtException", (err) => {
+  mainLogger.error("Uncaught Exception — shutting down:", { message: err.message, stack: err.stack });
+  process.exit(1);
+});
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+<% if (language === 'typescript') { -%>
+let httpServer: import("http").Server | undefined;
+<% } else { -%>
+let httpServer;
+<% } -%>
+
+function gracefulShutdown(signal<%= language === 'typescript' ? ': string' : '' %>) {
+  mainLogger.info(`${signal} received — starting graceful shutdown`);
+  if (httpServer) {
+    httpServer.close(() => {
+      mainLogger.info("HTTP server closed");
+      process.exit(0);
+    });
+    setTimeout(() => {
+      mainLogger.warn("Forcing shutdown after timeout");
+      process.exit(1);
+    }, 10_000).unref();
+  } else {
+    process.exit(0);
+  }
+}
+
+const bootstrap = async () => {
+  try {
+<%_ if (features.database) { -%>
+    const db = await connectDB();
+    if (!db) throw new Error("Database connection failed");
+<%_ } -%>
+<%_ if (features.email) { -%>
+    await initializeEmailTransporter();
+<%_ } -%>
+    mainLogger.info(welcome());
+  } catch (error) {
+    mainLogger.error("Service initialization error:", error);
+    throw error;
+  }
+};
+
+await bootstrap();
+
+const app = getServer();
+const port = env.PORT || 3000;
+
+httpServer = app.listen(port, () => {
+  mainLogger.info(`Server listening on http://localhost:${port}`);
+});
+
+export default app;

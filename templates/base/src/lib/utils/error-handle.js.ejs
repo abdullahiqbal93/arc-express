@@ -1,0 +1,68 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import { mainLogger } from "../logger/winston.<%= ext %>";
+
+export class ValidationError extends Error {
+  constructor(message<%= language === 'typescript' ? ': string' : '' %>) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+export const handleError = (err<%= language === 'typescript' ? ': any' : '' %>) => {
+<%_ if (features.database && orm === 'sequelize') { -%>
+  if (err.name === "SequelizeUniqueConstraintError") {
+    const field = err.errors?.[0]?.path || "field";
+    mainLogger.error("DB_ERROR", err);
+    return `Duplicate value for ${field}`;
+  }
+
+  if (err.name === "SequelizeValidationError") {
+    mainLogger.error("DB_ERROR", err);
+    return err.errors?.map((e<%= language === 'typescript' ? ': any' : '' %>) => e.message).join(", ") || "Validation error";
+  }
+
+  if (err.name === "SequelizeForeignKeyConstraintError") {
+    mainLogger.error("DB_ERROR", err);
+    return "Referenced record not found";
+  }
+
+  if (err.name === "SequelizeDatabaseError") {
+    mainLogger.error("DB_ERROR", err);
+    return "Database error";
+  }
+
+<%_ } else if (features.database && orm === 'prisma') { -%>
+  if (err.code === "P2002") {
+    const field = err.meta?.target?.[0] || "field";
+    mainLogger.error("DB_ERROR", err);
+    return `Duplicate value for ${field}`;
+  }
+
+  if (err.code === "P2025") {
+    mainLogger.error("DB_ERROR", err);
+    return "Record not found";
+  }
+
+  if (err.code?.startsWith?.("P")) {
+    mainLogger.error("DB_ERROR", err);
+    return "Database error";
+  }
+
+<%_ } else if (features.database && orm === 'drizzle') { -%>
+  if (err.code === "23505") {
+    mainLogger.error("DB_ERROR", err);
+    return "Duplicate value";
+  }
+
+  if (err.code === "23503") {
+    mainLogger.error("DB_ERROR", err);
+    return "Referenced record not found";
+  }
+
+<%_ } -%>
+  if (err instanceof ValidationError) {
+    return err.message;
+  }
+
+  return err.message ? err.message : "Something went wrong";
+};

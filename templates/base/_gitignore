@@ -1,0 +1,10 @@
+node_modules
+.env
+.idea
+.vscode
+logs/
+application.log
+.eslintcache
+coverage
+dist
+@types

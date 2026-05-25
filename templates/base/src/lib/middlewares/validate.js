@@ -1,0 +1,38 @@
+import { createErrorResponse } from "../services/error.js";
+import { StatusCodes } from "http-status-codes";
+
+export const validateRequestBody = (schema) => (req, res, next) => {
+  const parsed = schema.safeParse(req.body);
+  if (parsed.success) {
+    req.body = parsed.data;
+    return next();
+  }
+  const errorMessage = parsed.error.errors[0]?.message || "Validation Error";
+  return createErrorResponse(res, parsed.error.errors, StatusCodes.BAD_REQUEST, errorMessage);
+};
+
+export const validateRequestParams = (schema) => (req, res, next) => {
+  const parsed = schema.safeParse(req.params);
+  if (parsed.success) {
+    req.params = parsed.data;
+    return next();
+  }
+  const data = parsed.error.errors.map((error) => ({
+    ...error,
+    field: error.path.join("."),
+  }));
+  return createErrorResponse(res, data, StatusCodes.NOT_ACCEPTABLE, "Request params validation error");
+};
+
+export const validateRequestQuery = (schema) => (req, res, next) => {
+  const parsed = schema.safeParse(req.query);
+  if (parsed.success) {
+    req.query = parsed.data;
+    return next();
+  }
+  const data = parsed.error.errors.map((error) => ({
+    ...error,
+    field: error.path.join("."),
+  }));
+  return createErrorResponse(res, data, StatusCodes.BAD_REQUEST, "Request query validation error");
+};

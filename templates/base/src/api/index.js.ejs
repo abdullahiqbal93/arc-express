@@ -1,0 +1,17 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+<%_ if (features.auth) { -%>
+import { auth } from "./auth/index.<%= ext %>";
+<%_ } -%>
+import { heartbeat } from "./status/heartbeat.<%= ext %>";
+import { Router } from "express";
+
+export const getApiRouter = () => {
+  const router = Router();
+
+  heartbeat(router);
+<%_ if (features.auth) { -%>
+  auth(router);
+<%_ } -%>
+
+  return router;
+};

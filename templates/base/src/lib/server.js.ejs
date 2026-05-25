@@ -1,0 +1,112 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import { getApiRouter } from '../api/index.<%= ext %>';
+import { API_PATH, env } from './config.<%= ext %>';
+import { morganMiddleware } from './logger/morgan.<%= ext %>';
+import { expressErrorHandler } from './services/error.<%= ext %>';
+import { sanitizeBody } from './middlewares/sanitize.<%= ext %>';
+<%_ if (features.csrf) { -%>
+import { doubleCsrfProtection } from './middlewares/csrf.<%= ext %>';
+<%_ } -%>
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express from 'express';
+import helmet from 'helmet';
+import { StatusCodes } from 'http-status-codes';
+<%_ if (features.auth && authStrategy === 'session') { -%>
+import session from 'express-session';
+<%_ if (orm === 'sequelize') { -%>
+import connectSessionSequelize from 'connect-session-sequelize';
+import sequelize from './db/connect.<%= ext %>';
+<%_ } -%>
+<%_ } -%>
+
+export const getServer = () => {
+  const app = express();
+
+  // ── CORS ─────────────────────────────────────────────────────
+  const corsOptions = {
+    origin: env.CLIENT_BASE_URL,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'<%= features.csrf ? ", 'x-csrf-token'" : '' %>],
+  };
+  app.options('*', cors(corsOptions));
+  app.use(cors(corsOptions));
+
+  // ── Body parsing ─────────────────────────────────────────────
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json());
+  app.use(cookieParser());
+
+  // ── Security ─────────────────────────────────────────────────
+  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+
+<%_ if (features.auth && authStrategy === 'session') { -%>
+  // ── Session ──────────────────────────────────────────────────
+<%_ if (orm === 'sequelize') { -%>
+  const SequelizeStore = connectSessionSequelize(session.Store);
+  const sessionStore = new SequelizeStore({ db: sequelize, tableName: "sessions" });
+<%_ } -%>
+  app.use(
+    session({
+      secret: env.SESSION_SECRET,
+<%_ if (orm === 'sequelize') { -%>
+      store: sessionStore,
+<%_ } -%>
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: env.NODE_ENV === "production",
+        sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      },
+    })
+  );
+<%_ if (orm === 'sequelize') { -%>
+  sessionStore.sync();
+<%_ } -%>
+
+<%_ } -%>
+<%_ if (features.csrf) { -%>
+  // ── CSRF ─────────────────────────────────────────────────────
+  app.use((req, res, next) => {
+    doubleCsrfProtection(req, res, (err) => {
+      if (err) {
+        return res.status(403).json({
+          success: false,
+          message: "Invalid CSRF token. Please refresh and try again.",
+        });
+      }
+      next();
+    });
+  });
+
+<%_ } -%>
+  // ── Sanitize & Logging ───────────────────────────────────────
+  app.use(sanitizeBody);
+  app.use(morganMiddleware);
+
+  // ── Routes ───────────────────────────────────────────────────
+  app.use(API_PATH, getApiRouter());
+
+  // ── Root ──────────────────────────────────────────────────────
+  app.get("/favicon.ico", (_, res) => res.status(StatusCodes.NO_CONTENT).send());
+  app.get("/", (_, res) => {
+    res.status(200).json({
+      success: true,
+      message: "Server is running",
+      api: `${env.API_BASE_URL}/heartbeat`,
+    });
+  });
+
+  // ── 404 ──────────────────────────────────────────────────────
+  app.all("*", (_, res) => {
+    res.status(StatusCodes.NOT_FOUND).json({ success: false, message: "Not found" });
+  });
+
+  // ── Error handler ────────────────────────────────────────────
+  app.use(expressErrorHandler);
+
+  return app;
+};
