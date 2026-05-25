@@ -1,0 +1,53 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+<%_ if (orm === 'sequelize') { -%>
+import { AuditLog } from "../../db/models/index.<%= ext %>";
+<%_ } else if (orm === 'prisma') { -%>
+import prisma from "../db/connect.<%= ext %>";
+<%_ } else if (orm === 'drizzle') { -%>
+import db from "../db/connect.<%= ext %>";
+<%_ } -%>
+import { mainLogger } from "../logger/winston.<%= ext %>";
+
+/**
+ * Write an audit log entry.
+ * @param {object} opts
+ * @param {number|null} opts.userId
+ * @param {string} opts.action  - e.g. "login", "create", "update", "delete"
+ * @param {string} opts.entityType - e.g. "user", "transaction"
+ * @param {number|null} opts.entityId
+ * @param {object|null} opts.metadata
+ * @param {import("express").Request} [opts.req]
+ */
+export const writeAuditLog = async ({ userId, action, entityType, entityId = null, metadata = null, req = null }) => {
+  try {
+<%_ if (orm === 'sequelize') { -%>
+    await AuditLog.create({
+      user_id: userId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      metadata_json: metadata,
+      ip: req?.ip || req?.headers?.["x-forwarded-for"] || null,
+      user_agent: req?.headers?.["user-agent"] || null,
+    });
+<%_ } else if (orm === 'prisma') { -%>
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action,
+        entityType,
+        entityId,
+        metadata: metadata ? JSON.stringify(metadata) : null,
+        ip: req?.ip || req?.headers?.["x-forwarded-for"] || null,
+        userAgent: req?.headers?.["user-agent"] || null,
+      },
+    });
+<%_ } else { -%>
+    // For Drizzle, create an audit_logs table in your schema
+    mainLogger.info(`AUDIT: ${action} on ${entityType}:${entityId} by user ${userId}`);
+<%_ } -%>
+  } catch (error) {
+    // Never let audit logging crash the request
+    mainLogger.error("Audit log write failed:", error);
+  }
+};

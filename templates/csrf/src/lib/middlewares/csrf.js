@@ -1,0 +1,30 @@
+import { doubleCsrf } from "csrf-csrf";
+import { env } from "../config.js";
+
+/**
+ * CSRF protection using the double-submit cookie pattern.
+ *
+ * - A signed CSRF token is stored in a `__csrf` httpOnly cookie.
+ * - The client reads it via GET /auth/csrf-token and sends it
+ *   back in the `x-csrf-token` header on every mutating request.
+ * - GET / HEAD / OPTIONS are exempt.
+ */
+const {
+  generateCsrfToken,
+  doubleCsrfProtection,
+} = doubleCsrf({
+  getSecret: () => env.SESSION_SECRET,
+  getSessionIdentifier: (req) => req.session?.id ?? "",
+  getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"],
+  cookieName: "__csrf",
+  cookieOptions: {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  },
+  size: 64,
+  ignoredMethods: ["GET", "HEAD", "OPTIONS"],
+});
+
+export { generateCsrfToken, doubleCsrfProtection };
