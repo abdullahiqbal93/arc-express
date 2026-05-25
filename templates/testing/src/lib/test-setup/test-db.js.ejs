@@ -1,0 +1,93 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+<%_ if (database === 'postgresql') { -%>
+import { Sequelize } from "sequelize";
+import { GenericContainer } from "testcontainers";
+import { mainLogger } from "../logger/winston.<%= ext %>";
+
+let container;
+let testSequelize;
+
+/**
+ * Start a Postgres testcontainer and return a Sequelize instance.
+ */
+export const setupTestDB = async () => {
+  try {
+    container = await new GenericContainer("postgres:16-alpine")
+      .withExposedPorts(5432)
+      .withEnvironment({
+        POSTGRES_USER: "test",
+        POSTGRES_PASSWORD: "test",
+        POSTGRES_DB: "test_db",
+      })
+      .withDefaultLogDriver()
+      .start();
+
+    const host = container.getHost();
+    const port = container.getMappedPort(5432);
+    const url = `postgres://test:test@${host}:${port}/test_db`;
+
+    testSequelize = new Sequelize(url, {
+      dialect: "postgres",
+      logging: false,
+      define: { underscored: true, timestamps: true },
+    });
+
+    await testSequelize.authenticate();
+    mainLogger.info("Test database connected successfully.");
+    return testSequelize;
+  } catch (error) {
+    mainLogger.error("Error setting up test database:", error);
+    throw error;
+  }
+};
+<%_ } else { -%>
+import { Sequelize } from "sequelize";
+import { GenericContainer } from "testcontainers";
+import { mainLogger } from "../logger/winston.<%= ext %>";
+
+let container;
+let testSequelize;
+
+/**
+ * Start a MySQL testcontainer and return a Sequelize instance.
+ */
+export const setupTestDB = async () => {
+  try {
+    container = await new GenericContainer("mysql:8.0")
+      .withExposedPorts(3306)
+      .withEnvironment({
+        MYSQL_ROOT_PASSWORD: "test",
+        MYSQL_DATABASE: "test_db",
+      })
+      .withDefaultLogDriver()
+      .start();
+
+    const host = container.getHost();
+    const port = container.getMappedPort(3306);
+    const url = `mysql://root:test@${host}:${port}/test_db`;
+
+    testSequelize = new Sequelize(url, {
+      dialect: "mysql",
+      logging: false,
+      define: { underscored: true, timestamps: true },
+    });
+
+    await testSequelize.authenticate();
+    mainLogger.info("Test database connected successfully.");
+    return testSequelize;
+  } catch (error) {
+    mainLogger.error("Error setting up test database:", error);
+    throw error;
+  }
+};
+<%_ } -%>
+
+/**
+ * Tear down container and close connection.
+ */
+export const teardownTestDB = async () => {
+  if (testSequelize) await testSequelize.close();
+  if (container) await container.stop();
+};
+
+export { testSequelize };
