@@ -1,7 +1,7 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 import nodemailer from "nodemailer";
-import { env } from "../config.<%= ext %>";
-import { mainLogger } from "../logger/winston.<%= ext %>";
+import { env } from "#lib/config.<%= ext %>";
+import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 
 let transporter;
 

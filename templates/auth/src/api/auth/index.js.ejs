@@ -16,11 +16,11 @@ import {
   forgotPasswordSchema, resetPasswordSchema, validateResetTokenSchema,
   deleteAccountSchema,
 } from "./schema/index.<%= ext %>";
-import { validateRequestBody } from "../../lib/middlewares/validate.<%= ext %>";
-import { requireAuth } from "../../lib/middlewares/require-auth.<%= ext %>";
-import { loginRateLimiter } from "../../lib/middlewares/rate-limiter.<%= ext %>";
+import { validateRequestBody } from "#lib/middlewares/validate.<%= ext %>";
+import { requireAuth } from "#lib/middlewares/require-auth.<%= ext %>";
+import { loginRateLimiter } from "#lib/middlewares/rate-limiter.<%= ext %>";
 <%_ if (features.csrf) { -%>
-import { generateCsrfToken } from "../../lib/middlewares/csrf.<%= ext %>";
+import { generateCsrfToken } from "#lib/middlewares/csrf.<%= ext %>";
 <%_ } -%>
 
 export const auth = (router) => {

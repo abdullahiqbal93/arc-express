@@ -1,6 +1,6 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 import { GenericContainer } from "testcontainers";
-import { mainLogger } from "../logger/winston.<%= ext %>";
+import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 <%_ if (orm === 'sequelize') { -%>
 import { Sequelize } from "sequelize";
 <%_ } else if (orm === 'prisma') { -%>

@@ -1,13 +1,13 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
-import { createErrorResponse } from "../services/error.<%= ext %>";
+import { createErrorResponse } from "#lib/services/error.<%= ext %>";
 import { StatusCodes } from "http-status-codes";
 <%_ if (orm === 'sequelize') { -%>
-import User from "../../db/models/user.<%= ext %>";
+import User from "#db/models/user.<%= ext %>";
 <%_ } else if (orm === 'prisma') { -%>
-import prisma from "../db/connect.<%= ext %>";
+import prisma from "#lib/db/connect.<%= ext %>";
 <%_ } else if (orm === 'drizzle') { -%>
-import db from "../db/connect.<%= ext %>";
-import { users } from "../../db/schema/index.<%= ext %>";
+import db from "#lib/db/connect.<%= ext %>";
+import { users } from "#db/schema/index.<%= ext %>";
 import { eq } from "drizzle-orm";
 <%_ } -%>
 

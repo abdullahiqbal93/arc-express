@@ -162,6 +162,9 @@ async function generatePackageJson(targetDir, context) {
       prepare: 'husky || true',
     },
     engines: { node: '>=18.0.0' },
+    imports: {
+      '#*': './src/*'
+    },
     dependencies,
     devDependencies,
     overrides: {

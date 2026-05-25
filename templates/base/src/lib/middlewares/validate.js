@@ -1,4 +1,4 @@
-import { createErrorResponse } from "../services/error.js";
+import { createErrorResponse } from "#lib/services/error.js";
 import { StatusCodes } from "http-status-codes";
 
 export const validateRequestBody = (schema) => (req, res, next) => {

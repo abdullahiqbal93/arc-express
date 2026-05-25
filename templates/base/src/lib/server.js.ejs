@@ -1,5 +1,5 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
-import { getApiRouter } from '../api/index.<%= ext %>';
+import { getApiRouter } from "#api/index.<%= ext %>";
 import { API_PATH, env } from './config.<%= ext %>';
 import { morganMiddleware } from './logger/morgan.<%= ext %>';
 import { expressErrorHandler } from './services/error.<%= ext %>';

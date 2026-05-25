@@ -1,7 +1,7 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 import { Sequelize } from "sequelize";
-import { env } from "../config.<%= ext %>";
-import { mainLogger } from "../logger/winston.<%= ext %>";
+import { env } from "#lib/config.<%= ext %>";
+import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 
 const sequelize = new Sequelize(env.DATABASE_URL, {
   dialect: "<%= database === 'mysql' ? 'mysql' : 'postgres' %>",

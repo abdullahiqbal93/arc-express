@@ -1,24 +1,24 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 <%_ if (orm === 'sequelize') { -%>
-import User from "../../db/models/user.<%= ext %>";
-import sequelize from "../../lib/db/connect.<%= ext %>";
+import User from "#db/models/user.<%= ext %>";
+import sequelize from "#lib/db/connect.<%= ext %>";
 <%_ } else if (orm === 'prisma') { -%>
-import prisma from "../../lib/db/connect.<%= ext %>";
+import prisma from "#lib/db/connect.<%= ext %>";
 <%_ } else if (orm === 'drizzle') { -%>
-import db from "../../lib/db/connect.<%= ext %>";
-import { users } from "../../db/schema/index.<%= ext %>";
+import db from "#lib/db/connect.<%= ext %>";
+import { users } from "#db/schema/index.<%= ext %>";
 import { eq } from "drizzle-orm";
 <%_ } -%>
-import { createErrorResponse } from "../../lib/services/error.<%= ext %>";
-import { createSuccessResponse } from "../../lib/services/success.<%= ext %>";
-import { handleError } from "../../lib/utils/error-handle.<%= ext %>";
+import { createErrorResponse } from "#lib/services/error.<%= ext %>";
+import { createSuccessResponse } from "#lib/services/success.<%= ext %>";
+import { handleError } from "#lib/utils/error-handle.<%= ext %>";
 <%_ if (features.audit) { -%>
-import { writeAuditLog } from "../../lib/services/audit.<%= ext %>";
+import { writeAuditLog } from "#lib/services/audit.<%= ext %>";
 <%_ } -%>
 <%_ if (features.email) { -%>
-import { sendPasswordResetEmail } from "../../lib/utils/email.<%= ext %>";
+import { sendPasswordResetEmail } from "#lib/utils/email.<%= ext %>";
 <%_ } -%>
-import { env } from "../../lib/config.<%= ext %>";
+import { env } from "#lib/config.<%= ext %>";
 import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcryptjs";
 <%_ if (authStrategy === 'jwt') { -%>

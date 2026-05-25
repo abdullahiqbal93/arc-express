@@ -6,8 +6,8 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 <%_ } -%>
-import { env } from "../config.<%= ext %>";
-import { mainLogger } from "../logger/winston.<%= ext %>";
+import { env } from "#lib/config.<%= ext %>";
+import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 
 <%_ if (database === 'postgresql') { -%>
 export const client = postgres(env.DATABASE_URL);

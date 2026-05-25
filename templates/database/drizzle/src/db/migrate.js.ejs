@@ -8,12 +8,12 @@
 
 <%_ if (database === 'postgresql') { -%>
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import db, { client } from "../lib/db/connect.<%= ext %>";
+import db, { client } from "#lib/db/connect.<%= ext %>";
 <%_ } else { -%>
 import { migrate } from "drizzle-orm/mysql2/migrator";
-import db, { pool } from "../lib/db/connect.<%= ext %>";
+import db, { pool } from "#lib/db/connect.<%= ext %>";
 <%_ } -%>
-import { mainLogger } from "../lib/logger/winston.<%= ext %>";
+import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 
 async function run() {
   try {

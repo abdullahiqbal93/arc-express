@@ -1,6 +1,6 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 import { doubleCsrf } from "csrf-csrf";
-import { env } from "../config.<%= ext %>";
+import { env } from "#lib/config.<%= ext %>";
 
 /**
  * CSRF protection using the double-submit cookie pattern.

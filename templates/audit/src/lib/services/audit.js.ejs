@@ -1,10 +1,10 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 <%_ if (orm === 'prisma') { -%>
-import prisma from "../db/connect.<%= ext %>";
+import prisma from "#lib/db/connect.<%= ext %>";
 <%_ } else if (orm === 'drizzle') { -%>
-import db from "../db/connect.<%= ext %>";
+import db from "#lib/db/connect.<%= ext %>";
 <%_ } -%>
-import { mainLogger } from "../logger/winston.<%= ext %>";
+import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 
 /**
  * Write an audit log entry.

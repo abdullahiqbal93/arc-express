@@ -1,5 +1,5 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
-import { mainLogger } from "../logger/winston.<%= ext %>";
+import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 
 export class ValidationError extends Error {
   constructor(message<%= language === 'typescript' ? ': string' : '' %>) {

@@ -7,8 +7,8 @@
  *   npx sequelize-cli db:migrate
  */
 
-import sequelize from "../lib/db/connect.<%= ext %>";
-import { mainLogger } from "../lib/logger/winston.<%= ext %>";
+import sequelize from "#lib/db/connect.<%= ext %>";
+import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 
 const direction = process.argv[2] || "up";
 
