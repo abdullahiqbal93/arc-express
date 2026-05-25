@@ -41,7 +41,7 @@ export async function collectPrompts(nameArg) {
       { value: 'csrf',         label: 'CSRF Protection',            hint: 'double-submit cookie pattern' },
       { value: 'audit',        label: 'Audit Logging',              hint: 'track user actions in DB' },
       { value: 'docker',       label: 'Docker Compose',             hint: 'Postgres/MySQL + Redis' },
-      { value: 'testing',      label: 'Testing',                    hint: 'Jest + Supertest + Testcontainers' },
+      { value: 'testing',      label: 'Testing',                    hint: 'Vitest API Testing' },
       { value: 'githubActions', label: 'GitHub Actions CI',         hint: 'automated CI pipeline' },
     ],
     required: false,

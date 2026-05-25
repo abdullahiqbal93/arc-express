@@ -20,7 +20,7 @@ Pick only what you need — every feature is optional:
 | **CSRF Protection** | Double-submit cookie pattern |
 | **Audit Logging** | Track user actions in the database |
 | **Docker Compose** | Pre-configured PostgreSQL/MySQL + Redis |
-| **Testing** | Jest + Supertest + Testcontainers |
+| **Testing** | Vitest API Testing |
 | **GitHub Actions** | CI pipeline with multi-version Node.js matrix |
 | **TypeScript** | Full TypeScript support with tsx |
 
@@ -45,7 +45,7 @@ my-api/
 ├── .env.example
 ├── package.json
 ├── docker-compose.yml       # (if Docker selected)
-├── jest.config.js           # (if Testing selected)
+├── vitest.config.js         # (if Testing selected)
 └── README.md
 ```
 

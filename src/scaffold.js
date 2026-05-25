@@ -322,7 +322,7 @@ async function generateReadme(targetDir, context) {
     csrf: '- ✅ **CSRF Protection**',
     audit: '- ✅ **Audit Logging**',
     docker: '- ✅ **Docker Compose**',
-    testing: '- ✅ **Testing** (Jest + Supertest)',
+    testing: '- ✅ **Testing** (Vitest)',
     githubActions: '- ✅ **GitHub Actions CI**',
   };
   for (const [key, label] of Object.entries(featureList)) {

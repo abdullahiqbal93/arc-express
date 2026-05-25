@@ -56,7 +56,7 @@ function formatFeatureName(key) {
     csrf: 'CSRF Protection',
     audit: 'Audit Logging',
     docker: 'Docker Compose',
-    testing: 'Testing (Jest)',
+    testing: 'Testing (Vitest)',
     githubActions: 'GitHub Actions CI',
   };
   return names[key] || key;
