@@ -260,8 +260,8 @@ async function generateEnvExample(targetDir, context) {
     lines.push('# ══════════════════════════════════════════');
     lines.push('# Google OAuth');
     lines.push('# ══════════════════════════════════════════');
-    lines.push('GOOGLE_CLIENT_ID=');
-    lines.push('GOOGLE_CLIENT_SECRET=');
+    lines.push('GOOGLE_CLIENT_ID=your-google-client-id');
+    lines.push('GOOGLE_CLIENT_SECRET=your-google-client-secret');
     lines.push('GOOGLE_CALLBACK_URL=http://localhost:5173/auth/google/callback');
     lines.push('');
   }
@@ -270,9 +270,9 @@ async function generateEnvExample(targetDir, context) {
     lines.push('# ══════════════════════════════════════════');
     lines.push('# Cloudinary');
     lines.push('# ══════════════════════════════════════════');
-    lines.push('CLOUDINARY_CLOUD_NAME=');
-    lines.push('CLOUDINARY_API_KEY=');
-    lines.push('CLOUDINARY_API_SECRET=');
+    lines.push('CLOUDINARY_CLOUD_NAME=your-cloud-name');
+    lines.push('CLOUDINARY_API_KEY=your-api-key');
+    lines.push('CLOUDINARY_API_SECRET=your-api-secret');
     lines.push('');
   }
 
