@@ -4,12 +4,12 @@ import { mysqlTable, int, varchar, timestamp } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").primaryKey().autoincrement(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
+  email: varchar("email", { length: 191 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
   passwordHash: varchar("password_hash", { length: 255 }),
   role: varchar("role", { length: 50 }).default("user"),
   status: varchar("status", { length: 50 }).default("active"),
-  googleId: varchar("google_id", { length: 255 }).unique(),
+  googleId: varchar("google_id", { length: 191 }).unique(),
   resetPasswordToken: varchar("reset_password_token", { length: 255 }),
   resetPasswordExpires: timestamp("reset_password_expires"),
   createdAt: timestamp("created_at").defaultNow(),

@@ -8,7 +8,7 @@ const User = sequelize.define("User", {
     autoIncrement: true,
   },
   email: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(191),
     allowNull: false,
     unique: true,
   },
@@ -29,7 +29,7 @@ const User = sequelize.define("User", {
     defaultValue: "active",
   },
   google_id: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(191),
     allowNull: true,
     unique: true,
   },
