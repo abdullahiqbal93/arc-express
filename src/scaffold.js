@@ -211,6 +211,7 @@ async function generateEnvExample(targetDir, context) {
     'PORT=3000',
     'CLIENT_BASE_URL=http://localhost:5173',
     'API_BASE_URL=http://localhost:3000/api/v1',
+    ...(context.orm === 'sequelize' ? ['LOG_SQL=false   # set to true to print raw SQL queries'] : []),
     '',
   ];
 
