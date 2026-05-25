@@ -185,9 +185,9 @@ async function generatePackageJson(targetDir, context) {
 
   // Testing scripts
   if (context.features.testing) {
-    pkg.scripts.test = 'jest';
-    pkg.scripts['test:watch'] = 'jest --watch';
-    pkg.scripts['test:coverage'] = 'jest --coverage';
+    pkg.scripts.test = 'vitest run';
+    pkg.scripts['test:watch'] = 'vitest';
+    pkg.scripts['test:coverage'] = 'vitest run --coverage';
   }
 
   await fs.writeJSON(path.join(targetDir, 'package.json'), pkg, { spaces: 2 });
