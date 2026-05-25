@@ -35,17 +35,174 @@ export const auth = (router) => {
   });
 
 <%_ } -%>
+  /**
+   * @swagger
+   * /auth/register:
+   *   post:
+   *     tags: [Authentication]
+   *     summary: Register a new user
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               name: { type: string }
+   *               email: { type: string }
+   *               password: { type: string }
+   *     responses:
+   *       201: { description: Created }
+   */
   router.post("/auth/register", loginRateLimiter, validateRequestBody(registerSchema), register);
+
+  /**
+   * @swagger
+   * /auth/login:
+   *   post:
+   *     tags: [Authentication]
+   *     summary: Log in to account
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               email: { type: string }
+   *               password: { type: string }
+   *     responses:
+   *       200: { description: Success }
+   *       401: { description: Unauthorized }
+   */
   router.post("/auth/login", loginRateLimiter, validateRequestBody(loginSchema), login);
+
+  /**
+   * @swagger
+   * /auth/logout:
+   *   post:
+   *     tags: [Authentication]
+   *     summary: Log out
+   *     security:
+<%_ if (authStrategy === 'jwt') { -%>
+   *       - bearerAuth: []
+<%_ } else { -%>
+   *       - cookieAuth: []
+<%_ } -%>
+   *     responses:
+   *       200: { description: Success }
+   */
   router.post("/auth/logout", logout);
+
+  /**
+   * @swagger
+   * /auth/me:
+   *   get:
+   *     tags: [Authentication]
+   *     summary: Get current logged-in user profile
+   *     security:
+<%_ if (authStrategy === 'jwt') { -%>
+   *       - bearerAuth: []
+<%_ } else { -%>
+   *       - cookieAuth: []
+<%_ } -%>
+   *     responses:
+   *       200: { description: Success }
+   */
   router.get("/auth/me", requireAuth, me);
 
+  /**
+   * @swagger
+   * /auth/profile:
+   *   patch:
+   *     tags: [Authentication]
+   *     summary: Update profile
+   *     security:
+<%_ if (authStrategy === 'jwt') { -%>
+   *       - bearerAuth: []
+<%_ } else { -%>
+   *       - cookieAuth: []
+<%_ } -%>
+   *     responses:
+   *       200: { description: Success }
+   */
   router.patch("/auth/profile", requireAuth, validateRequestBody(updateProfileSchema), updateProfile);
+
+  /**
+   * @swagger
+   * /auth/password:
+   *   patch:
+   *     tags: [Authentication]
+   *     summary: Change password
+   *     security:
+<%_ if (authStrategy === 'jwt') { -%>
+   *       - bearerAuth: []
+<%_ } else { -%>
+   *       - cookieAuth: []
+<%_ } -%>
+   *     responses:
+   *       200: { description: Success }
+   */
   router.patch("/auth/password", requireAuth, validateRequestBody(changePasswordSchema), changePassword);
 
 <%_ if (features.email) { -%>
+  /**
+   * @swagger
+   * /auth/forgot-password:
+   *   post:
+   *     tags: [Authentication]
+   *     summary: Request password reset email
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               email: { type: string }
+   *     responses:
+   *       200: { description: Success }
+   */
   router.post("/auth/forgot-password", loginRateLimiter, validateRequestBody(forgotPasswordSchema), forgotPassword);
+
+  /**
+   * @swagger
+   * /auth/validate-reset-token:
+   *   post:
+   *     tags: [Authentication]
+   *     summary: Validate reset token
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               token: { type: string }
+   *     responses:
+   *       200: { description: Valid token }
+   *       400: { description: Invalid token }
+   */
   router.post("/auth/validate-reset-token", validateRequestBody(validateResetTokenSchema), validateResetToken);
+
+  /**
+   * @swagger
+   * /auth/reset-password:
+   *   post:
+   *     tags: [Authentication]
+   *     summary: Reset password using token
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               token: { type: string }
+   *               password: { type: string }
+   *     responses:
+   *       200: { description: Password reset successfully }
+   */
   router.post("/auth/reset-password", loginRateLimiter, validateRequestBody(resetPasswordSchema), resetPassword);
 <%_ } -%>
 

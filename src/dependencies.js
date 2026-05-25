@@ -18,6 +18,8 @@ const BASE_DEPS = {
   'chalk':              '^5.4.1',
   'date-fns':           '^4.1.0',
   '@date-fns/tz':       '^1.2.0',
+  'swagger-ui-express': '^5.0.1',
+  'swagger-jsdoc':      '^6.2.8',
 };
 
 const BASE_DEV_DEPS = {
@@ -163,6 +165,8 @@ const TS_DEV_DEPS = {
   '@types/cors':    '^2.8.17',
   '@types/cookie-parser': '^1.4.8',
   '@types/morgan':  '^1.9.9',
+  '@types/swagger-ui-express': '^4.1.7',
+  '@types/swagger-jsdoc': '^6.0.4',
 };
 
 const TS_FEATURE_DEV_DEPS = {

@@ -12,6 +12,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { StatusCodes } from 'http-status-codes';
+import { setupSwagger } from './swagger.<%= ext %>';
 <%_ if (features.auth && authStrategy === 'session') { -%>
 import session from 'express-session';
 <%_ if (orm === 'sequelize') { -%>
@@ -86,6 +87,9 @@ export const getServer = () => {
   // ── Sanitize & Logging ───────────────────────────────────────
   app.use(sanitizeBody);
   app.use(morganMiddleware);
+
+  // ── Swagger Docs ─────────────────────────────────────────────
+  setupSwagger(app);
 
   // ── Routes ───────────────────────────────────────────────────
   app.use(API_PATH, getApiRouter());
