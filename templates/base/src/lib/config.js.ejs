@@ -13,7 +13,7 @@ export const env = {
   DATABASE_URL: process.env.DATABASE_URL || "",
 <%_ } -%>
 <%_ if (features.auth) { -%>
-  SALT_FACTOR: parseInt(process.env.SALT_FACTOR<%= language === 'typescript' ? ' || ""' : '' %>, 10) || 10,
+  SALT_FACTOR: parseInt(process.env.SALT_FACTOR<%- language === 'typescript' ? ' || ""' : '' %>, 10) || 10,
 <%_ } -%>
 <%_ if (features.auth && authStrategy === 'session') { -%>
   SESSION_SECRET: (() => {
@@ -52,6 +52,6 @@ export const env = {
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
 <%_ } -%>
-}<%= language === 'typescript' ? ' as const' : '' %>;
+}<%- language === 'typescript' ? ' as const' : '' %>;
 
 export const API_PATH = `/api/${env.VERSION}/`;
