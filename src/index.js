@@ -56,6 +56,51 @@ export async function run(args) {
     return process.exit(1);
   }
 
+  const { execSync } = await import('child_process');
+
+  const shouldInstall = await p.confirm({
+    message: 'Would you like to install dependencies now? (npm install)',
+    initialValue: true,
+  });
+
+  if (p.isCancel(shouldInstall)) {
+    p.cancel('Operation cancelled.');
+    return process.exit(0);
+  }
+
+  if (shouldInstall) {
+    const installSpinner = p.spinner();
+    installSpinner.start('Installing dependencies...');
+    try {
+      execSync('npm install', { cwd: targetDir, stdio: 'ignore' });
+      installSpinner.stop('Dependencies installed.');
+    } catch (err) {
+      installSpinner.stop('Failed to install dependencies.');
+      p.log.error(pc.red('You can install them manually later using `npm install`.'));
+    }
+  }
+
+  const shouldGit = await p.confirm({
+    message: 'Would you like to initialize a new git repository?',
+    initialValue: true,
+  });
+
+  if (p.isCancel(shouldGit)) {
+    p.cancel('Operation cancelled.');
+    return process.exit(0);
+  }
+
+  if (shouldGit) {
+    try {
+      execSync('git init', { cwd: targetDir, stdio: 'ignore' });
+      execSync('git add .', { cwd: targetDir, stdio: 'ignore' });
+      execSync('git commit -m "Initial commit from create-arc-express"', { cwd: targetDir, stdio: 'ignore' });
+      p.log.success('Initialized a git repository.');
+    } catch (err) {
+      p.log.error(pc.red('Failed to initialize git repository. Is git installed?'));
+    }
+  }
+
   p.outro(pc.green('Done!'));
   printSuccess(context.projectName, context);
 }
