@@ -165,6 +165,9 @@ async function generatePackageJson(targetDir, context) {
     overrides: {
       uuid: "^11.0.0"
     },
+    ...(context.orm === 'prisma' && {
+      prisma: { schema: "src/db/schema.prisma" }
+    })
   };
 
   // Add DB scripts
