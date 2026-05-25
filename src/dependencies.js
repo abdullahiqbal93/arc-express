@@ -165,7 +165,7 @@ const TS_FEATURE_DEV_DEPS = {
   'auth-jwt': { '@types/jsonwebtoken': '^9.0.9' },
   email:      { '@types/nodemailer': '^6.4.17' },
   fileUpload: { '@types/multer': '^1.4.12' },
-  testing:    { '@types/jest': '^30.4.2', '@types/supertest': '^6.0.2' },
+  testing:    { '@types/jest': '^30.0.0', '@types/supertest': '^6.0.2' },
   csrf:       {},
   audit:      {},
   oauth:      {},
