@@ -1,0 +1,27 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import { Sequelize } from "sequelize";
+import { env } from "../config.<%= ext %>";
+import { mainLogger } from "../logger/winston.<%= ext %>";
+
+const sequelize = new Sequelize(env.DATABASE_URL, {
+  dialect: "<%= database === 'mysql' ? 'mysql' : 'postgres' %>",
+  logging: (msg) => mainLogger.debug(msg, { isSql: true }),
+  define: {
+    underscored: true,
+    timestamps: true,
+  },
+});
+
+export const connectDB = async () => {
+  try {
+    await sequelize.authenticate();
+    await sequelize.sync({ alter: env.NODE_ENV === "development" });
+    mainLogger.info("Database connected successfully.");
+    return sequelize;
+  } catch (error) {
+    mainLogger.error("Database connection failed:", error);
+    throw error;
+  }
+};
+
+export default sequelize;

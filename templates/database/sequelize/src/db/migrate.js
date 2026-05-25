@@ -1,0 +1,30 @@
+/**
+ * Database migration runner.
+ * Usage: node src/db/migrate.js [up|down]
+ *
+ * For production, consider using sequelize-cli:
+ *   npx sequelize-cli db:migrate
+ */
+
+import sequelize from "../lib/db/connect.js";
+import { mainLogger } from "../lib/logger/winston.js";
+
+const direction = process.argv[2] || "up";
+
+async function run() {
+  try {
+    if (direction === "up") {
+      await sequelize.sync({ alter: true });
+      mainLogger.info("Migrations applied (sync alter).");
+    } else {
+      mainLogger.info("Down migration — use sequelize-cli for granular rollbacks.");
+    }
+  } catch (error) {
+    mainLogger.error("Migration failed:", error);
+    process.exit(1);
+  } finally {
+    await sequelize.close();
+  }
+}
+
+run();

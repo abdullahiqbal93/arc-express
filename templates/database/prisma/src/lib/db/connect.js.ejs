@@ -1,0 +1,27 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import { PrismaClient } from "@prisma/client";
+import { mainLogger } from "../logger/winston.<%= ext %>";
+
+const prisma = new PrismaClient({
+  log: [
+    { level: "query", emit: "event" },
+    { level: "error", emit: "stdout" },
+  ],
+});
+
+prisma.$on("query", (e) => {
+  mainLogger.debug(e.query, { isSql: true, timing: e.duration });
+});
+
+export const connectDB = async () => {
+  try {
+    await prisma.$connect();
+    mainLogger.info("Database connected successfully.");
+    return prisma;
+  } catch (error) {
+    mainLogger.error("Database connection failed:", error);
+    throw error;
+  }
+};
+
+export default prisma;
