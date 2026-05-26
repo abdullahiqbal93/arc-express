@@ -84,8 +84,9 @@ async function copyTemplate(templateName, targetDir, context) {
     let relativePath = path.relative(srcDir, filePath);
     let outputRelPath = relativePath;
 
-    // Rename _gitignore → .gitignore (npm strips .gitignore from packages)
+    // Rename underscore-prefixed npm-sensitive dotfiles back to their real names.
     outputRelPath = outputRelPath.replace(/(?:^|[\\/])_gitignore$/, '.gitignore');
+    outputRelPath = outputRelPath.replace(/(?:^|[\\/])_npmrc$/, '.npmrc');
 
     // Skip JS-only config files when TypeScript is selected
     const basename = path.basename(filePath);

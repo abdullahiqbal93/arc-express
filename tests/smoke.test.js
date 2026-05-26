@@ -53,6 +53,7 @@ async function run() {
     assert(pkg.name === testCase.projectName, 'package.json name should match project name');
     assert(!pkg.devDependencies['eslint-plugin-prettier'], 'generated lint config should not require eslint-plugin-prettier');
     assert(envExample.includes('CSRF_SECRET='), '.env.example should include CSRF_SECRET when CSRF is selected');
+    assert(rel.includes('.npmrc'), 'generated projects should include the npm config template');
     assert(rel.includes(path.join('.github', 'workflows', 'ci.yml')), 'GitHub Actions workflow should be generated');
 
     if (testCase.language === 'typescript') {

@@ -65,6 +65,7 @@ async function assertRenderedProject(outDir, context) {
   const pkg = await fs.readJSON(path.join(outDir, "package.json"));
   const envExample = await fs.readFile(path.join(outDir, ".env.example"), "utf-8");
 
+  assert(rel.includes(".npmrc"), `${context.projectName} should include generated npm config`);
   assert(rel.includes(".github/workflows/ci.yml"), `${context.projectName} should include generated GitHub Actions`);
   assert(rel.includes(`src/lib/services/audit.${ext}`), `${context.projectName} should include audit service`);
   assertNoEmptySourceFiles(files, outDir);
