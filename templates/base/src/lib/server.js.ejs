@@ -40,7 +40,11 @@ export const getServer = () => {
   app.use(cookieParser());
 
   // ── Security ─────────────────────────────────────────────────
-  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    // Allow same-origin Referer header (needed for Swagger CSRF bypass)
+    referrerPolicy: { policy: "same-origin" },
+  }));
 
 <%_ if (features.auth && authStrategy === 'session') { -%>
   // ── Session ──────────────────────────────────────────────────
