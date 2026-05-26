@@ -31,7 +31,7 @@ export async function collectPrompts(nameArg) {
 
   // ── Features ──────────────────────────────────────────────────
   const selectedFeatures = await p.multiselect({
-    message: 'Select features:',
+    message: 'Select features: (Press <Space> to select, <Enter> to submit)',
     options: [
       { value: 'auth',         label: 'Authentication',             hint: 'register / login / password reset' },
       { value: 'database',     label: 'Database (ORM)',             hint: 'Sequelize, Prisma, or Drizzle' },
