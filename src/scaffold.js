@@ -324,16 +324,14 @@ async function generateReadme(targetDir, context) {
     'cp .env.example .env    # edit with your values',
   ];
 
-  if (context.features.database) {
-    if (context.orm === 'prisma') {
-      lines.push('npm run db:generate');
-      lines.push('npm run db:migrate');
-    } else if (context.orm === 'drizzle') {
-      lines.push('npm run db:generate');
-      lines.push('npm run db:migrate');
-    } else if (context.orm === 'sequelize') {
-      lines.push('npm run db:migrate');
-    }
+  if (context.orm === 'prisma') {
+    lines.push('npx prisma generate');
+    lines.push('npx prisma migrate dev');
+  } else if (context.orm === 'drizzle') {
+    lines.push('npx drizzle-kit generate');
+    lines.push('npm run db:migrate');
+  } else if (context.orm === 'sequelize') {
+    lines.push('npm run db:migrate');
   }
 
   lines.push('npm run dev');
@@ -368,9 +366,6 @@ async function generateReadme(targetDir, context) {
   lines.push('| `npm run dev` | Start development server with hot-reload |');
   lines.push('| `npm start` | Start production server |');
   if (context.features.database) {
-    if (context.orm === 'prisma' || context.orm === 'drizzle') {
-      lines.push('| `npm run db:generate` | Generate database schemas/types |');
-    }
     lines.push('| `npm run db:migrate` | Run database migrations |');
     lines.push('| `npm run db:seed` | Seed the database |');
   }
