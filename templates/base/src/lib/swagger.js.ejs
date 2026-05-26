@@ -69,5 +69,24 @@ const swaggerSpec = swaggerJsdoc(options);
 export const setupSwagger = (app<%- language === 'typescript' ? ': Application' : '' %>) => {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customSiteTitle: "API Documentation",
+<%_ if (features.csrf) { -%>
+    swaggerOptions: {
+      persistAuthorization: true,
+      // Automatically fetch and attach the CSRF token for all mutating requests
+      requestInterceptor: (request) => {
+        const CSRF_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+        if (!CSRF_METHODS.includes(request.method?.toUpperCase())) return request;
+        return fetch('/api/' + (window.__API_VERSION__ || 'v1') + '/csrf-token')
+          .then(r => r.json())
+          .then(data => {
+            if (data?.data?.csrfToken) {
+              request.headers['x-csrf-token'] = data.data.csrfToken;
+            }
+            return request;
+          })
+          .catch(() => request);
+      },
+    },
+<%_ } -%>
   }));
 };
