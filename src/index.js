@@ -2,9 +2,33 @@ import * as p from '@clack/prompts';
 import path from 'path';
 import fs from 'fs-extra';
 import pc from 'picocolors';
+import { spawn, execSync } from 'child_process';
 import { printBanner, printSuccess } from './banner.js';
 import { collectPrompts } from './prompts.js';
 import { scaffoldProject } from './scaffold.js';
+
+/**
+ * Run a shell command and stream its stdout/stderr live to the terminal.
+ */
+function runLive(cmd, args, cwd) {
+  return new Promise((resolve, reject) => {
+    const isWin = process.platform === 'win32';
+    const child = spawn(isWin ? `${cmd}.cmd` : cmd, args, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false,
+    });
+
+    child.stdout.on('data', (d) => process.stdout.write(pc.dim(d.toString())));
+    child.stderr.on('data', (d) => process.stderr.write(pc.yellow(d.toString())));
+
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`"${cmd} ${args.join(' ')}" exited with code ${code}`));
+    });
+    child.on('error', reject);
+  });
+}
 
 /**
  * Main entry point for the CLI.
@@ -24,7 +48,7 @@ export async function run(args) {
 
   const targetDir = path.resolve(process.cwd(), context.projectName);
 
-  // Check if directory exists
+  // Check if directory exists and is non-empty
   if (await fs.pathExists(targetDir)) {
     const files = await fs.readdir(targetDir);
     if (files.length > 0) {
@@ -42,13 +66,13 @@ export async function run(args) {
     }
   }
 
-  // Scaffold
+  // Scaffold the project files
   const spinner = p.spinner();
   spinner.start('Scaffolding project...');
 
   try {
     await scaffoldProject(targetDir, context);
-    spinner.stop('Project scaffolded.');
+    spinner.stop('Project scaffolded successfully.');
   } catch (err) {
     spinner.stop('Scaffolding failed.');
     p.log.error(pc.red(err.message));
@@ -56,8 +80,7 @@ export async function run(args) {
     return process.exit(1);
   }
 
-  const { execSync } = await import('child_process');
-
+  // ── Install dependencies ────────────────────────────────────────────────
   const shouldInstall = await p.confirm({
     message: 'Would you like to install dependencies now? (npm install)',
     initialValue: true,
@@ -69,17 +92,17 @@ export async function run(args) {
   }
 
   if (shouldInstall) {
-    const installSpinner = p.spinner();
-    installSpinner.start('Installing dependencies...');
+    p.log.step(pc.cyan('Installing dependencies — this may take a minute...\n'));
     try {
-      execSync('npm install', { cwd: targetDir, stdio: 'ignore' });
-      installSpinner.stop('Dependencies installed.');
+      await runLive('npm', ['install', '--no-fund'], targetDir);
+      p.log.success(pc.green('Dependencies installed successfully.'));
     } catch (err) {
-      installSpinner.stop('Failed to install dependencies.');
-      p.log.error(pc.red('You can install them manually later using `npm install`.'));
+      p.log.error(pc.red(`Install failed: ${err.message}`));
+      p.log.warn(pc.yellow('You can install them manually later using `npm install`.'));
     }
   }
 
+  // ── Git init ────────────────────────────────────────────────────────────
   const shouldGit = await p.confirm({
     message: 'Would you like to initialize a new git repository?',
     initialValue: true,
@@ -96,7 +119,7 @@ export async function run(args) {
       execSync('git add .', { cwd: targetDir, stdio: 'ignore' });
       execSync('git commit -m "Initial commit from create-arc-express"', { cwd: targetDir, stdio: 'ignore' });
       p.log.success('Initialized a git repository.');
-    } catch (err) {
+    } catch {
       p.log.error(pc.red('Failed to initialize git repository. Is git installed?'));
     }
   }
