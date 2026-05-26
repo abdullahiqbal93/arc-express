@@ -2,9 +2,20 @@
 /**
  * Central model registry.
  * Import and re-export all models here, then define associations.
- *
- * Example:
- *   import User from "./user.<%= ext %>";
- *   User.hasMany(Post);
- *   export { User };
  */
+<%_ if (features.auth) { -%>
+import User from "./user.<%= ext %>";
+<%_ } -%>
+<%_ if (features.audit) { -%>
+import AuditLog from "./audit-log.<%= ext %>";
+<%_ } -%>
+
+export {
+<%_ if (features.auth) { -%>
+  User,
+<%_ } -%>
+<%_ if (features.audit) { -%>
+  AuditLog,
+<%_ } -%>
+};
+

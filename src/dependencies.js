@@ -117,7 +117,7 @@ const FEATURE_DEPS = {
 
 const ORM_DEPS = {
   sequelize: {
-    deps: { 'sequelize': '^6.37.7' },
+    deps: { 'sequelize': '^6.37.7', 'umzug': '^3.8.2' },
     devDeps: {},
   },
   prisma: {

@@ -32,30 +32,38 @@ export const writeAuditLog = async ({ userId, action, entityType, entityId = nul
   try {
     const details = {
       metadata,
-      ip: req?.ip || req?.headers?.["x-forwarded-for"] || null,
+      ip: req?.ip || (Array.isArray(req?.headers?.["x-forwarded-for"]) ? req?.headers?.["x-forwarded-for"][0] : req?.headers?.["x-forwarded-for"]) || null,
       userAgent: req?.headers?.["user-agent"] || null,
     };
 <%_ if (orm === 'sequelize') { -%>
-    // await AuditLog.create({
-    //   user_id: userId,
-    //   action,
-    //   entity_type: entityType,
-    //   entity_id: entityId,
-    //   metadata_json: metadata,
-    //   ip: req?.ip || req?.headers?.["x-forwarded-for"] || null,
-    //   user_agent: req?.headers?.["user-agent"] || null,
-    // });
+    await (await import("#db/models/index.<%= ext %>")).AuditLog.create({
+      userId: userId,
+      action,
+      entityType: entityType,
+      entityId: entityId ? String(entityId) : null,
+      metadata: metadata,
+      ip: details.ip,
+      userAgent: details.userAgent,
+    });
 <%_ } else if (orm === 'prisma') { -%>
-    // await prisma.auditLog.create({
-    //   data: {
-    //     userId, action, entityType, entityId,
-    //     metadata: metadata ? JSON.stringify(metadata) : null,
-    //     ip: req?.ip || req?.headers?.["x-forwarded-for"] || null,
-    //     userAgent: req?.headers?.["user-agent"] || null,
-    //   },
-    // });
-<%_ } else { -%>
-    // For Drizzle, use your preferred insert method
+    await prisma.auditLog.create({
+      data: {
+        userId, action, entityType,
+        entityId: entityId ? String(entityId) : null,
+        metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : null,
+        ip: details.ip,
+        userAgent: details.userAgent,
+      },
+    });
+<%_ } else if (orm === 'drizzle') { -%>
+    const { auditLogs } = await import("#db/schema/index.<%= ext %>");
+    await db.insert(auditLogs).values({
+      userId, action, entityType,
+      entityId: entityId ? String(entityId) : null,
+      metadata,
+      ip: details.ip,
+      userAgent: details.userAgent,
+    });
 <%_ } -%>
     mainLogger.info(`AUDIT: ${action} on ${entityType}:${entityId} by user ${userId}`, details);
   } catch (error) {

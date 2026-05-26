@@ -1,24 +1,43 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 /**
- * Database migration runner.
- * Usage: npx tsx src/db/migrate.<%= ext %> [up|down]
- *
- * For production, consider using sequelize-cli:
- *   npx sequelize-cli db:migrate
+ * Umzug-based migration runner.
+ * Usage: npm run db:migrate        (runs pending migrations)
+ *        npm run db:migrate:down   (reverts last migration)
  */
-
+import { Umzug, SequelizeStorage } from "umzug";
 import sequelize from "#lib/db/connect.<%= ext %>";
 import { mainLogger } from "#lib/logger/winston.<%= ext %>";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const umzug = new Umzug({
+  migrations: {
+    glob: path.join(__dirname, "migrations/*.{js,ts,cjs,mjs}").replace(/\\/g, "/"),
+  },
+  context: sequelize.getQueryInterface(),
+  storage: new SequelizeStorage({ sequelize }),
+  logger: {
+    info: (msg) => mainLogger.info(msg),
+    warn: (msg) => mainLogger.warn(msg),
+    error: (msg) => mainLogger.error(msg),
+    debug: (msg) => mainLogger.debug(msg),
+  },
+});
 
 const direction = process.argv[2] || "up";
 
 async function run() {
   try {
     if (direction === "up") {
-      await sequelize.sync({ alter: true });
-      mainLogger.info("Migrations applied (sync alter).");
+      const executed = await umzug.up();
+      mainLogger.info(`Migrations applied: ${executed.length === 0 ? "already up to date" : executed.map(m => m.name).join(", ")}`);
+    } else if (direction === "down") {
+      const reverted = await umzug.down();
+      mainLogger.info(`Migration reverted: ${reverted.length === 0 ? "nothing to revert" : reverted.map(m => m.name).join(", ")}`);
     } else {
-      mainLogger.info("Down migration — use sequelize-cli for granular rollbacks.");
+      mainLogger.error(`Unknown direction: ${direction}. Use "up" or "down".`);
     }
   } catch (error) {
     mainLogger.error("Migration failed:", error);

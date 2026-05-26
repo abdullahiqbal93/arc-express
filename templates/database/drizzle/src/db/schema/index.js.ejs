@@ -1,6 +1,6 @@
 <%_ if (features.auth) { -%>
 <%_ if (database === 'mysql') { -%>
-import { mysqlTable, int, varchar, timestamp } from "drizzle-orm/mysql-core";
+import { mysqlTable, int, varchar, timestamp, text, json } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").primaryKey().autoincrement(),
@@ -15,8 +15,23 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
+
+<%_ if (features.audit) { -%>
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id"),
+  action: varchar("action", { length: 100 }).notNull(),
+  entityType: varchar("entity_type", { length: 100 }).notNull(),
+  entityId: varchar("entity_id", { length: 255 }),
+  metadata: json("metadata"),
+  ip: varchar("ip", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+<%_ } -%>
+
 <%_ } else { -%>
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, json, varchar, index } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -31,7 +46,64 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+<%_ if (features.audit) { -%>
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  action: varchar("action", { length: 100 }).notNull(),
+  entityType: varchar("entity_type", { length: 100 }).notNull(),
+  entityId: varchar("entity_id", { length: 255 }),
+  metadata: json("metadata"),
+  ip: varchar("ip", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("audit_user_idx").on(table.userId),
+  index("audit_action_idx").on(table.action),
+  index("audit_entity_idx").on(table.entityType, table.entityId),
+]);
+<%_ } -%>
+
 <%_ } -%>
 <%_ } else { -%>
+<%_ if (database === 'mysql') { -%>
+import { mysqlTable, int, varchar, timestamp, text, json } from "drizzle-orm/mysql-core";
+<%_ } else { -%>
+import { pgTable, serial, text, timestamp, integer, json, varchar, index } from "drizzle-orm/pg-core";
+<%_ } -%>
+
 // Add your Drizzle schemas here
+<%_ if (features.audit) { -%>
+
+<%_ if (database === 'mysql') { -%>
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id"),
+  action: varchar("action", { length: 100 }).notNull(),
+  entityType: varchar("entity_type", { length: 100 }).notNull(),
+  entityId: varchar("entity_id", { length: 255 }),
+  metadata: json("metadata"),
+  ip: varchar("ip", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+<%_ } else { -%>
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  action: varchar("action", { length: 100 }).notNull(),
+  entityType: varchar("entity_type", { length: 100 }).notNull(),
+  entityId: varchar("entity_id", { length: 255 }),
+  metadata: json("metadata"),
+  ip: varchar("ip", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("audit_user_idx").on(table.userId),
+  index("audit_action_idx").on(table.action),
+  index("audit_entity_idx").on(table.entityType, table.entityId),
+]);
+<%_ } -%>
+<%_ } -%>
 <%_ } -%>

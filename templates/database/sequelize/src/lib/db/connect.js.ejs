@@ -6,7 +6,7 @@ import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 const sequelize = new Sequelize(env.DATABASE_URL, {
   dialect: "<%= database === 'mysql' ? 'mysql' : 'postgres' %>",
   logging: process.env.LOG_SQL === "true"
-    ? (msg) => mainLogger.debug(msg)
+    ? (msg<%- language === 'typescript' ? ': string' : '' %>) => mainLogger.debug(msg)
     : false,
   define: {
     underscored: true,
@@ -17,7 +17,6 @@ const sequelize = new Sequelize(env.DATABASE_URL, {
 export const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    await sequelize.sync({ alter: env.NODE_ENV === "development" });
     mainLogger.info("Database connected successfully.");
     return sequelize;
   } catch (error) {

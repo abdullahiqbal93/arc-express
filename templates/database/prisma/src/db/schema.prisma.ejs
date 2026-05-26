@@ -20,9 +20,34 @@ model User {
   resetPasswordExpires DateTime? @map("reset_password_expires")
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt      @map("updated_at")
+<%_ if (features.audit) { -%>
+  auditLogs            AuditLog[]
+<%_ } -%>
 
   @@map("users")
 }
+
 <%_ } else { -%>
 // Add your models here
+<%_ } -%>
+<%_ if (features.audit) { -%>
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+<%_ if (features.auth) { -%>
+  user       User?    @relation(fields: [userId], references: [id])
+<%_ } -%>
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
 <%_ } -%>

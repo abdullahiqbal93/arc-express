@@ -1,0 +1,50 @@
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+<%_ if (features.auth) { -%>
+import { DataTypes, Model } from "sequelize";
+import sequelize from "#lib/db/connect.<%= ext %>";
+<%_ if (language === 'typescript') { -%>
+import type { InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
+
+class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
+  declare id: CreationOptional<number>;
+  declare email: string;
+  declare name: string;
+  declare passwordHash: CreationOptional<string | null>;
+  declare role: CreationOptional<string>;
+  declare status: CreationOptional<string>;
+  declare googleId: CreationOptional<string | null>;
+  declare resetPasswordToken: CreationOptional<string | null>;
+  declare resetPasswordExpires: CreationOptional<Date | null>;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+}
+<%_ } else { -%>
+
+class User extends Model {}
+<%_ } -%>
+
+User.init(
+  {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    email: { type: DataTypes.STRING(191), allowNull: false, unique: true },
+    name: { type: DataTypes.STRING(255), allowNull: false },
+    passwordHash: { type: DataTypes.STRING(255), allowNull: true, field: "password_hash" },
+    role: { type: DataTypes.STRING(50), allowNull: false, defaultValue: "user" },
+    status: { type: DataTypes.STRING(50), allowNull: false, defaultValue: "active" },
+    googleId: { type: DataTypes.STRING(191), allowNull: true, unique: true, field: "google_id" },
+    resetPasswordToken: { type: DataTypes.STRING(255), allowNull: true, field: "reset_password_token" },
+    resetPasswordExpires: { type: DataTypes.DATE, allowNull: true, field: "reset_password_expires" },
+  },
+  {
+    sequelize,
+    modelName: "User",
+    tableName: "users",
+    underscored: true,
+    timestamps: true,
+  },
+);
+
+export default User;
+<%_ } else { -%>
+// Add your Sequelize models here
+<%_ } -%>

@@ -1,0 +1,84 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Fast test: Scaffolds all 12 combinations and verifies files generate properly
+  # Does NOT run npm install or boot the server, making it extremely fast
+  render-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: npm ci
+      - run: node tests/smoke.test.js
+
+  # Deep test: Scaffolds JavaScript + Postgres + Sequelize
+  # Installs dependencies and verifies the server successfully boots
+  boot-js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      
+      - name: Scaffold JS Project
+        run: |
+          node -e "
+            import { scaffoldProject } from './src/scaffold.js';
+            const context = {
+              projectName: 'test-project', language: 'javascript',
+              database: 'postgresql', orm: 'sequelize', authStrategy: 'session',
+              features: { auth: true, database: true, csrf: true, audit: true, oauth: false, email: false, fileUpload: false, docker: false, testing: false, githubActions: false }
+            };
+            await scaffoldProject('./test-project', context);
+          "
+      
+      - name: Install & Boot
+        working-directory: test-project
+        run: |
+          npm install --no-audit --no-fund
+          cp .env.example .env
+          npm run dev &
+          sleep 5
+          kill $!
+
+  boot-ts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      
+      - name: Scaffold TS Project
+        run: |
+          node -e "
+            import { scaffoldProject } from './src/scaffold.js';
+            const context = {
+              projectName: 'test-project', language: 'typescript',
+              database: 'postgresql', orm: 'prisma', authStrategy: 'jwt',
+              features: { auth: true, database: true, csrf: true, audit: true, oauth: false, email: false, fileUpload: false, docker: false, testing: false, githubActions: false }
+            };
+            await scaffoldProject('./test-project', context);
+          "
+      
+      - name: Install, Typecheck & Boot
+        working-directory: test-project
+        run: |
+          npm install --no-audit --no-fund
+          cp .env.example .env
+          npm run db:generate
+          npm run typecheck
+          npm run dev &
+          sleep 5
+          kill $!
