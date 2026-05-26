@@ -4,7 +4,7 @@
   "description": "Scaffold production-ready Express.js backends with interactive feature selection",
   "type": "module",
   "bin": {
-    "create-arc-express": "./bin/index.js"
+    "create-arc-express": "bin/index.js"
   },
   "files": [
     "bin",
