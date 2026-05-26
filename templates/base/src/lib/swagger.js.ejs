@@ -70,56 +70,23 @@ export const setupSwagger = (app<%- language === 'typescript' ? ': Application' 
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customSiteTitle: "API Documentation",
 <%_ if (features.csrf) { -%>
+    // Force Swagger UI to include cookies (especially __csrf) in every request
+    swaggerOptions: {
+      fetchOptions: {
+        credentials: "include",
+      },
+    },
+    // Auto-fetch a CSRF token and pre-authorize so the user never has to copy-paste
     customJsStr: `
-      // ── Auto CSRF for Swagger UI ─────────────────────────────────
-      // Monkey-patches fetch so every POST/PUT/PATCH/DELETE request
-      // automatically gets a fresh CSRF token + the __csrf cookie.
-      (function() {
-        const _fetch = window.fetch.bind(window);
-        const MUTATING = new Set(['POST','PUT','PATCH','DELETE']);
-        let _token = null;
-
-        async function refreshToken() {
-          try {
-            const r = await _fetch(
-              window.location.origin + '/api/' + '${env.VERSION}' + '/csrf-token',
-              { credentials: 'include' }
-            );
-            const json = await r.json();
-            _token = json?.data?.csrfToken || null;
-          } catch(e) { _token = null; }
-        }
-
-        // Pre-fetch a token as soon as the page loads
-        refreshToken();
-
-        window.fetch = async function(url, opts) {
-          opts = opts || {};
-          const method = (opts.method || 'GET').toUpperCase();
-
-          // Skip intercepting the csrf-token endpoint itself
-          if (typeof url === 'string' && url.includes('csrf-token')) {
-            return _fetch(url, Object.assign(opts, { credentials: 'include' }));
+      window.addEventListener("load", async function() {
+        try {
+          var res = await fetch("/api/${env.VERSION}/csrf-token", { credentials: "include" });
+          var data = await res.json();
+          if (data && data.data && data.data.csrfToken && window.ui) {
+            window.ui.preauthorizeApiKey("csrfAuth", data.data.csrfToken);
           }
-
-          if (MUTATING.has(method)) {
-            // Always get a fresh token right before the request
-            await refreshToken();
-            if (_token) {
-              opts.headers = opts.headers || {};
-              if (opts.headers instanceof Headers) {
-                opts.headers.set('x-csrf-token', _token);
-              } else {
-                opts.headers['x-csrf-token'] = _token;
-              }
-            }
-            // Ensure cookies (__csrf) are sent
-            opts.credentials = 'include';
-          }
-
-          return _fetch(url, opts);
-        };
-      })();
+        } catch(e) {}
+      });
     `,
 <%_ } -%>
   }));
