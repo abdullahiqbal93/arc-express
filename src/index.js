@@ -13,10 +13,11 @@ import { scaffoldProject } from './scaffold.js';
 function runLive(cmd, args, cwd) {
   return new Promise((resolve, reject) => {
     const isWin = process.platform === 'win32';
-    const child = spawn(isWin ? `${cmd}.cmd` : cmd, args, {
+    const child = spawn(cmd, args, {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: false,
+      // Windows requires shell:true to run .cmd batch files (npm.cmd, etc.)
+      shell: isWin,
     });
 
     child.stdout.on('data', (d) => process.stdout.write(pc.dim(d.toString())));
