@@ -19,10 +19,10 @@ const umzug = new Umzug({
   context: sequelize.getQueryInterface(),
   storage: new SequelizeStorage({ sequelize }),
   logger: {
-    info: (msg) => mainLogger.info(msg),
-    warn: (msg) => mainLogger.warn(msg),
-    error: (msg) => mainLogger.error(msg),
-    debug: (msg) => mainLogger.debug(msg),
+    info: (msg) => mainLogger.info(JSON.stringify(msg)),
+    warn: (msg) => mainLogger.warn(JSON.stringify(msg)),
+    error: (msg) => mainLogger.error(JSON.stringify(msg)),
+    debug: (msg) => mainLogger.debug(JSON.stringify(msg)),
   },
 });
 
