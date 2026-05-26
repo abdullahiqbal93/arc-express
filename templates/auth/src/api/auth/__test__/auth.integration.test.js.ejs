@@ -1,0 +1,470 @@
+<%_ if (features.testing) { -%>
+<% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+import request from "supertest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+<%_ if (language === 'typescript') { -%>
+import type { Express } from "express";
+
+type TestUser = {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+  status: string;
+  passwordHash: string | null;
+  password_hash: string | null;
+  googleId: string | null;
+  google_id: string | null;
+  resetPasswordToken: string | null;
+  reset_password_token: string | null;
+  resetPasswordExpires: Date | null;
+  reset_password_expires: Date | null;
+  save: () => Promise<TestUser>;
+  destroy: () => Promise<void>;
+  toJSON: () => Omit<TestUser, "save" | "destroy" | "toJSON">;
+};
+
+type UserInput = Partial<TestUser> & {
+  email: string;
+  name: string;
+};
+
+<%_ if (orm !== 'drizzle') { -%>
+type WhereClause = {
+  id?: number | string;
+  email?: string;
+  googleId?: string;
+  google_id?: string;
+  resetPasswordToken?: string;
+  reset_password_token?: string;
+};
+
+type QueryShape = {
+  where?: WhereClause;
+  data?: Partial<TestUser>;
+  select?: Record<string, boolean>;
+};
+<%_ } -%>
+
+<%_ if (orm === 'drizzle') { -%>
+type MockCondition =
+  | { kind: "eq"; column: keyof TestUser; value: unknown }
+  | { kind: "gt"; column: keyof TestUser; value: unknown }
+  | { kind: "and"; conditions: MockCondition[] };
+<%_ } -%>
+<%_ } -%>
+
+process.env.NODE_ENV = "test";
+process.env.VERSION = "v1";
+process.env.PORT = "0";
+process.env.CLIENT_BASE_URL = "http://localhost:5173";
+process.env.API_BASE_URL = "http://localhost:3000/api/v1";
+process.env.DATABASE_URL = "<%= database === 'mysql' ? 'mysql://root:test@localhost:3306/test_db' : 'postgres://test:test@localhost:5432/test_db' %>";
+process.env.SALT_FACTOR = "4";
+process.env.SESSION_SECRET = "test-session-secret";
+process.env.JWT_SECRET = "test-jwt-secret";
+process.env.JWT_EXPIRES_IN = "1h";
+process.env.CSRF_SECRET = "test-csrf-secret";
+process.env.SMTP_HOST = "localhost";
+process.env.SMTP_PORT = "1025";
+process.env.SMTP_SECURE = "false";
+process.env.SMTP_USER = "test";
+process.env.SMTP_PASSWORD = "test";
+process.env.EMAIL_FROM = "\"Test\" <test@example.com>";
+process.env.GOOGLE_CLIENT_ID = "google-client-id";
+process.env.GOOGLE_CLIENT_SECRET = "google-client-secret";
+process.env.GOOGLE_CALLBACK_URL = "http://localhost:5173/auth/google/callback";
+process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
+process.env.CLOUDINARY_API_KEY = "test-key";
+process.env.CLOUDINARY_API_SECRET = "test-secret";
+
+const testState = vi.hoisted(() => {
+  const users = new Map<%- language === 'typescript' ? '<number, TestUser>' : '' %>();
+
+  const syncAliases = (user<%- language === 'typescript' ? ': TestUser' : '' %>) => {
+    user.passwordHash = user.passwordHash ?? user.password_hash ?? null;
+    user.password_hash = user.password_hash ?? user.passwordHash ?? null;
+    user.googleId = user.googleId ?? user.google_id ?? null;
+    user.google_id = user.google_id ?? user.googleId ?? null;
+    user.resetPasswordToken = user.resetPasswordToken ?? user.reset_password_token ?? null;
+    user.reset_password_token = user.reset_password_token ?? user.resetPasswordToken ?? null;
+    user.resetPasswordExpires = user.resetPasswordExpires ?? user.reset_password_expires ?? null;
+    user.reset_password_expires = user.reset_password_expires ?? user.resetPasswordExpires ?? null;
+    return user;
+  };
+
+  const makeUser = (input<%- language === 'typescript' ? ': UserInput' : '' %>) => {
+    const id = input.id ?? state.nextUserId++;
+    const user<%- language === 'typescript' ? ': TestUser' : '' %> = {
+      id,
+      email: input.email,
+      name: input.name,
+      role: input.role ?? "user",
+      status: input.status ?? "active",
+      passwordHash: input.passwordHash ?? input.password_hash ?? null,
+      password_hash: input.password_hash ?? input.passwordHash ?? null,
+      googleId: input.googleId ?? input.google_id ?? null,
+      google_id: input.google_id ?? input.googleId ?? null,
+      resetPasswordToken: input.resetPasswordToken ?? input.reset_password_token ?? null,
+      reset_password_token: input.reset_password_token ?? input.resetPasswordToken ?? null,
+      resetPasswordExpires: input.resetPasswordExpires ?? input.reset_password_expires ?? null,
+      reset_password_expires: input.reset_password_expires ?? input.resetPasswordExpires ?? null,
+      save: async () => {
+        users.set(id, syncAliases(user));
+        return user;
+      },
+      destroy: async () => {
+        users.delete(id);
+      },
+      toJSON: () => {
+        const { save: _save, destroy: _destroy, toJSON: _toJSON, ...data } = syncAliases(user);
+        return data;
+      },
+    };
+    users.set(id, syncAliases(user));
+    return user;
+  };
+
+  const state = {
+    users,
+    nextUserId: 1,
+    lastResetToken: "",
+    reset: () => {
+      users.clear();
+      state.nextUserId = 1;
+      state.lastResetToken = "";
+    },
+    makeUser,
+    findById: (id<%- language === 'typescript' ? ': number | string | undefined' : '' %>) => {
+      if (!id) return null;
+      return users.get(Number(id)) ?? null;
+    },
+    findByEmail: (email<%- language === 'typescript' ? ': string | undefined' : '' %>) => {
+      if (!email) return null;
+      return [...users.values()].find((user) => user.email === email) ?? null;
+    },
+    findByGoogleId: (googleId<%- language === 'typescript' ? ': string | undefined' : '' %>) => {
+      if (!googleId) return null;
+      return [...users.values()].find((user) => user.googleId === googleId || user.google_id === googleId) ?? null;
+    },
+    findByResetToken: (token<%- language === 'typescript' ? ': string | undefined' : '' %>) => {
+      if (!token) return null;
+      const now = Date.now();
+      return [...users.values()].find((user) => {
+        const expires = user.resetPasswordExpires ?? user.reset_password_expires;
+        return (user.resetPasswordToken === token || user.reset_password_token === token) && expires && expires.getTime() > now;
+      }) ?? null;
+    },
+  };
+
+  return state;
+});
+
+const csrfBypass = { referer: "http://localhost/api/docs" };
+
+<%_ if (features.email) { -%>
+vi.mock("#lib/utils/email.<%= ext %>", () => ({
+  initializeEmailTransporter: vi.fn(async () => undefined),
+  sendEmail: vi.fn(async () => ({ messageId: "test-message" })),
+  sendPasswordResetEmail: vi.fn(async (_to<%- language === 'typescript' ? ': string' : '' %>, token<%- language === 'typescript' ? ': string' : '' %>) => {
+    testState.lastResetToken = token;
+    return { messageId: "reset-message" };
+  }),
+}));
+<%_ } -%>
+
+<%_ if (features.audit) { -%>
+vi.mock("#lib/services/audit.<%= ext %>", () => ({
+  writeAuditLog: vi.fn(async () => undefined),
+}));
+<%_ } -%>
+
+<%_ if (authStrategy === 'session' && orm === 'sequelize') { -%>
+vi.mock("connect-session-sequelize", async () => {
+<%_ if (language === 'typescript') { -%>
+  type ExpressSessionModule = typeof import("express-session") & { default?: typeof import("express-session") };
+  const session = await vi.importActual<ExpressSessionModule>("express-session");
+<%_ } else { -%>
+  const session = await vi.importActual("express-session");
+<%_ } -%>
+  return { default: () => (session.default ?? session).MemoryStore };
+});
+
+vi.mock("#lib/db/connect.<%= ext %>", () => ({
+  connectDB: vi.fn(async () => ({})),
+  default: {},
+}));
+<%_ } -%>
+
+<%_ if (orm === 'sequelize') { -%>
+vi.mock("#db/models/user.<%= ext %>", () => ({
+  default: {
+    create: vi.fn(async (data<%- language === 'typescript' ? ': UserInput' : '' %>) => testState.makeUser(data)),
+    findByPk: vi.fn(async (id<%- language === 'typescript' ? ': number | string' : '' %>) => testState.findById(id)),
+    findOne: vi.fn(async (query<%- language === 'typescript' ? ': QueryShape' : '' %>) => {
+      const where = query.where ?? {};
+      if (where.email) return testState.findByEmail(where.email);
+      if (where.google_id) return testState.findByGoogleId(where.google_id);
+      if (where.reset_password_token) return testState.findByResetToken(where.reset_password_token);
+      return null;
+    }),
+  },
+}));
+<%_ } else if (orm === 'prisma') { -%>
+const prismaMock = vi.hoisted(() => ({
+  user: {
+    create: vi.fn(async (query<%- language === 'typescript' ? ': QueryShape' : '' %>) => testState.makeUser(<%- language === 'typescript' ? 'query.data as UserInput' : 'query.data' %>)),
+    findUnique: vi.fn(async (query<%- language === 'typescript' ? ': QueryShape' : '' %>) => {
+      const where = query.where ?? {};
+      if (where.id) return testState.findById(where.id);
+      if (where.email) return testState.findByEmail(where.email);
+      return null;
+    }),
+    findFirst: vi.fn(async (query<%- language === 'typescript' ? ': QueryShape' : '' %>) => {
+      const where = query.where ?? {};
+      if (where.googleId) return testState.findByGoogleId(where.googleId);
+      if (where.email) return testState.findByEmail(where.email);
+      if (where.resetPasswordToken) return testState.findByResetToken(where.resetPasswordToken);
+      return null;
+    }),
+    update: vi.fn(async (query<%- language === 'typescript' ? ': QueryShape' : '' %>) => {
+      const user = testState.findById(query.where?.id);
+      if (!user) throw new Error("User not found");
+      Object.assign(user, query.data);
+      return user.save();
+    }),
+    delete: vi.fn(async (query<%- language === 'typescript' ? ': QueryShape' : '' %>) => {
+      const user = testState.findById(query.where?.id);
+      if (!user) throw new Error("User not found");
+      await user.destroy();
+      return user;
+    }),
+  },
+}));
+
+vi.mock("#lib/db/connect.<%= ext %>", () => ({
+  connectDB: vi.fn(async () => prismaMock),
+  default: prismaMock,
+}));
+<%_ } else if (orm === 'drizzle') { -%>
+const drizzleColumns = vi.hoisted(() => ({
+  id: "id",
+  email: "email",
+  name: "name",
+  passwordHash: "passwordHash",
+  role: "role",
+  status: "status",
+  googleId: "googleId",
+  resetPasswordToken: "resetPasswordToken",
+  resetPasswordExpires: "resetPasswordExpires",
+}));
+
+const matchesCondition = (user<%- language === 'typescript' ? ': TestUser' : '' %>, condition<%- language === 'typescript' ? ': MockCondition | undefined' : '' %>)<%- language === 'typescript' ? ': boolean' : '' %> => {
+  if (!condition) return true;
+  if (condition.kind === "and") return condition.conditions.every((entry) => matchesCondition(user, entry));
+  if (condition.kind === "eq") return user[condition.column] === condition.value;
+  if (condition.kind === "gt") {
+    const value = user[condition.column];
+    return value instanceof Date && condition.value instanceof Date && value.getTime() > condition.value.getTime();
+  }
+  return false;
+};
+
+const drizzleDbMock = vi.hoisted(() => ({
+  select: vi.fn(() => ({
+    from: () => ({
+      where: (condition<%- language === 'typescript' ? ': MockCondition' : '' %>) => ({
+        limit: async () => [...testState.users.values()].filter((user) => matchesCondition(user, condition)).slice(0, 1),
+      }),
+    }),
+  })),
+  insert: vi.fn(() => ({
+    values: (data<%- language === 'typescript' ? ': UserInput' : '' %>) => ({
+      returning: async () => [testState.makeUser(data)],
+      $returningId: async () => [{ id: testState.makeUser(data).id }],
+    }),
+  })),
+  update: vi.fn(() => ({
+    set: (data<%- language === 'typescript' ? ': Partial<TestUser>' : '' %>) => ({
+      where: async (condition<%- language === 'typescript' ? ': MockCondition' : '' %>) => {
+        const updated = [...testState.users.values()].filter((user) => matchesCondition(user, condition));
+        for (const user of updated) {
+          Object.assign(user, data);
+          await user.save();
+        }
+        return updated;
+      },
+    }),
+  })),
+  delete: vi.fn(() => ({
+    where: async (condition<%- language === 'typescript' ? ': MockCondition' : '' %>) => {
+      const deleted = [...testState.users.values()].filter((user) => matchesCondition(user, condition));
+      for (const user of deleted) await user.destroy();
+      return deleted;
+    },
+  })),
+}));
+
+vi.mock("#db/schema/index.<%= ext %>", () => ({
+  users: drizzleColumns,
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: (column<%- language === 'typescript' ? ': keyof TestUser' : '' %>, value<%- language === 'typescript' ? ': unknown' : '' %>) => ({ kind: "eq", column, value }),
+  gt: (column<%- language === 'typescript' ? ': keyof TestUser' : '' %>, value<%- language === 'typescript' ? ': unknown' : '' %>) => ({ kind: "gt", column, value }),
+  and: (...conditions<%- language === 'typescript' ? ': MockCondition[]' : '' %>) => ({ kind: "and", conditions }),
+}));
+
+vi.mock("#lib/db/connect.<%= ext %>", () => ({
+  connectDB: vi.fn(async () => drizzleDbMock),
+  default: drizzleDbMock,
+}));
+<%_ } -%>
+
+<%_ if (features.oauth) { -%>
+const installGoogleFetchMock = () => {
+  vi.stubGlobal("fetch", async (input<%- language === 'typescript' ? ': string | URL | Request' : '' %>) => {
+    const url = String(input);
+    if (url.includes("oauth2.googleapis.com/token")) {
+      return new Response(JSON.stringify({ access_token: "google-access-token" }), {
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({
+      id: "google-user-id",
+      email: "google@example.com",
+      name: "Google User",
+    }), {
+      headers: { "content-type": "application/json" },
+    });
+  });
+};
+<%_ } -%>
+
+let app<%- language === 'typescript' ? ': Express' : '' %>;
+let getServer<%- language === 'typescript' ? ': () => Express' : '' %>;
+
+beforeAll(async () => {
+  ({ getServer } = await import("#lib/server.<%= ext %>"));
+});
+
+beforeEach(() => {
+  testState.reset();
+<%_ if (features.oauth) { -%>
+  installGoogleFetchMock();
+<%_ } -%>
+  app = getServer();
+});
+
+describe("auth integration", () => {
+  it("registers, logs in, reads the current user, and logs out", async () => {
+<%_ if (authStrategy === 'session') { -%>
+    const client = request.agent(app);
+<%_ } else { -%>
+    const client = request(app);
+<%_ } -%>
+    const email = "ada@example.com";
+
+    const registerRes = await client
+      .post("/api/v1/auth/register")
+      .set(csrfBypass)
+      .send({ email, password: "password123", name: "Ada Lovelace" })
+      .expect(201);
+
+    expect(registerRes.body.success).toBe(true);
+
+    const loginRes = await client
+      .post("/api/v1/auth/login")
+      .set(csrfBypass)
+      .send({ email, password: "password123" })
+      .expect(200);
+
+    expect(loginRes.body.success).toBe(true);
+
+<%_ if (authStrategy === 'jwt') { -%>
+    const token = loginRes.body.data.token;
+    expect(token).toEqual(expect.stringMatching(/\S+/));
+
+    const meRes = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+<%_ } else { -%>
+    const meRes = await client
+      .get("/api/v1/auth/me")
+      .expect(200);
+<%_ } -%>
+
+    expect(meRes.body.data.email).toBe(email);
+
+    await client
+      .post("/api/v1/auth/logout")
+      .set(csrfBypass)
+      .expect(200);
+
+<%_ if (authStrategy === 'session') { -%>
+    await client
+      .get("/api/v1/auth/me")
+      .expect(401);
+<%_ } -%>
+  });
+
+<%_ if (features.email) { -%>
+  it("requests, validates, and completes a password reset", async () => {
+    const email = "grace@example.com";
+
+    await request(app)
+      .post("/api/v1/auth/register")
+      .set(csrfBypass)
+      .send({ email, password: "old-password", name: "Grace Hopper" })
+      .expect(201);
+
+    await request(app)
+      .post("/api/v1/auth/forgot-password")
+      .set(csrfBypass)
+      .send({ email })
+      .expect(200);
+
+    expect(testState.lastResetToken).toEqual(expect.stringMatching(/\S+/));
+
+    await request(app)
+      .post("/api/v1/auth/validate-reset-token")
+      .set(csrfBypass)
+      .send({ token: testState.lastResetToken })
+      .expect(200);
+
+    await request(app)
+      .post("/api/v1/auth/reset-password")
+      .set(csrfBypass)
+      .send({ token: testState.lastResetToken, password: "new-password" })
+      .expect(200);
+
+    await request(app)
+      .post("/api/v1/auth/login")
+      .set(csrfBypass)
+      .send({ email, password: "new-password" })
+      .expect(200);
+  });
+<%_ } -%>
+
+<%_ if (features.oauth) { -%>
+  it("redirects to Google and accepts the OAuth callback", async () => {
+    const redirectRes = await request(app)
+      .get("/api/v1/auth/google")
+      .expect(302);
+
+    expect(redirectRes.headers.location).toContain("accounts.google.com");
+
+    const callbackRes = await request(app)
+      .post("/api/v1/auth/google/callback")
+      .set(csrfBypass)
+      .send({ code: "google-code" })
+      .expect(200);
+
+    const data = callbackRes.body.data.user ?? callbackRes.body.data;
+    expect(data.email).toBe("google@example.com");
+  });
+<%_ } -%>
+});
+<%_ } -%>

@@ -45,6 +45,7 @@ async function run() {
 
     const files = await getAllFiles(outDir);
     const rel = files.map((f) => path.relative(outDir, f)).sort();
+    const ext = testCase.language === 'typescript' ? 'ts' : 'js';
     console.log(`\n✅ ${testCase.projectName}: generated ${rel.length} files`);
 
     const pkg = await fs.readJSON(path.join(outDir, 'package.json'));
@@ -55,6 +56,10 @@ async function run() {
     assert(envExample.includes('CSRF_SECRET='), '.env.example should include CSRF_SECRET when CSRF is selected');
     assert(rel.includes('.npmrc'), 'generated projects should include the npm config template');
     assert(rel.includes(path.join('.github', 'workflows', 'ci.yml')), 'GitHub Actions workflow should be generated');
+    assert(
+      rel.includes(path.join('src', 'api', 'auth', '__test__', `auth.integration.test.${ext}`)),
+      'auth projects with testing should include auth integration tests',
+    );
 
     if (testCase.language === 'typescript') {
       assert(pkg.scripts.typecheck === 'tsc --noEmit', 'TypeScript projects should include a typecheck script');

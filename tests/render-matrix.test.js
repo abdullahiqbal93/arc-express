@@ -68,6 +68,10 @@ async function assertRenderedProject(outDir, context) {
   assert(rel.includes(".npmrc"), `${context.projectName} should include generated npm config`);
   assert(rel.includes(".github/workflows/ci.yml"), `${context.projectName} should include generated GitHub Actions`);
   assert(rel.includes(`src/lib/services/audit.${ext}`), `${context.projectName} should include audit service`);
+  assert(
+    rel.includes(`src/api/auth/__test__/auth.integration.test.${ext}`),
+    `${context.projectName} should include auth integration tests`,
+  );
   assertNoEmptySourceFiles(files, outDir);
   assertDockerDatabaseUrl(envExample, context);
 
