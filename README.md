@@ -1,102 +1,134 @@
 # create-arc-express
 
-> Scaffold production-ready Express.js backends with interactive feature selection.
+Scaffold production-ready Express.js backends with an interactive CLI.
 
 ```bash
-npx create-arc-express my-api
+npx create-arc-express@latest my-api
 ```
+
+`create-arc-express` generates a ready-to-run Express API with optional authentication, database tooling, testing, Docker Compose, TypeScript, and CI setup.
+
+## Requirements
+
+- Node.js 18 or newer
+- npm 9 or newer recommended
+
+## Quick Start
+
+```bash
+npx create-arc-express@latest my-api
+cd my-api
+cp .env.example .env
+npm run dev
+```
+
+You can also use npm's initializer form:
+
+```bash
+npm create arc-express@latest my-api
+```
+
+The CLI prompts for:
+
+- Project name
+- JavaScript or TypeScript
+- Optional features
+- Authentication strategy: session-based or JWT
+- ORM: Sequelize, Prisma, or Drizzle
+- Database: PostgreSQL or MySQL
+- Dependency installation and git initialization
 
 ## Features
 
-Pick only what you need — every feature is optional:
+Every feature is optional unless another selected feature depends on it.
 
 | Feature | Description |
-|---------|-------------|
-| **Authentication** | Session-based or JWT, with register/login/password-reset |
-| **Database** | Sequelize, Prisma, or Drizzle with PostgreSQL or MySQL |
-| **Google OAuth** | Social login via Google OAuth 2.0 |
-| **Email** | Nodemailer SMTP with password reset templates |
-| **File Upload** | Cloudinary + Multer integration |
-| **CSRF Protection** | Double-submit cookie pattern |
-| **Audit Logging** | Track user actions in the database |
-| **Docker Compose** | Pre-configured PostgreSQL/MySQL + Redis |
-| **Testing** | Vitest API Testing |
-| **GitHub Actions** | CI pipeline with multi-version Node.js matrix |
-| **TypeScript** | Full TypeScript support with tsx |
+| --- | --- |
+| Authentication | Register, login, password reset, route guards, rate limiting |
+| Database | Sequelize, Prisma, or Drizzle with PostgreSQL or MySQL |
+| Google OAuth | Google OAuth 2.0 login flow |
+| Email | Nodemailer SMTP utility for transactional email |
+| File Upload | Cloudinary and Multer integration |
+| CSRF Protection | Double-submit cookie CSRF protection |
+| Audit Logging | Database-backed user action logs |
+| Docker Compose | PostgreSQL/MySQL and Redis services |
+| Testing | Vitest, Supertest, coverage, and test setup helpers |
+| GitHub Actions | Node.js CI matrix for install, lint, typecheck, and tests |
+| TypeScript | Strict TypeScript setup with `tsx` |
 
-## Generated Project Structure
+## Generated Project
 
-```
+A generated app includes a modular API layout, centralized configuration, standardized response helpers, request validation, sanitization, logging, and optional feature-specific infrastructure.
+
+Representative structure:
+
+```text
 my-api/
-├── src/
-│   ├── app.js              # Entry point with graceful shutdown
-│   ├── api/                 # Route modules
-│   │   ├── index.js         # Route registry
-│   │   ├── status/          # Health check
-│   │   └── auth/            # Auth routes + controller + schema + tests
-│   ├── db/                  # Models, migrations, seeds
-│   └── lib/                 # Shared infrastructure
-│       ├── config.js        # Centralized env config
-│       ├── server.js        # Express app factory
-│       ├── logger/          # Winston + Morgan (colorized output)
-│       ├── middlewares/      # Auth, validation, CSRF, sanitize, rate-limit
-│       ├── services/        # Error/success response helpers, audit
-│       └── utils/           # Pagination, email, file upload, etc.
-├── .env.example
-├── package.json
-├── docker-compose.yml       # (if Docker selected)
-├── vitest.config.js         # (if Testing selected)
-└── README.md
+|-- src/
+|   |-- app.js
+|   |-- api/
+|   |   |-- index.js
+|   |   |-- status/
+|   |   `-- auth/
+|   |-- db/
+|   `-- lib/
+|       |-- config.js
+|       |-- server.js
+|       |-- logger/
+|       |-- middlewares/
+|       |-- services/
+|       `-- utils/
+|-- .env.example
+|-- package.json
+|-- docker-compose.yml
+|-- vitest.config.js
+`-- README.md
 ```
 
-## What's Inside
+## Common Generated Scripts
 
-### Architecture Patterns
-- **Layered structure**: `api/` → controller + schema + tests per module
-- **Centralized config**: All env vars in `lib/config.js`
-- **Standardized responses**: `APIResponse` class with consistent `{ success, message, data }`
-- **Zod validation**: Request body/params/query validation middleware
-- **XSS protection**: Automatic HTML sanitization on all request bodies
-- **Production logging**: Colorized Winston + Morgan with file rotation
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the development server with reload/watch mode |
+| `npm start` | Start the server |
+| `npm run lint` | Lint generated source files |
+| `npm run format` | Format generated source files |
+| `npm run typecheck` | Type-check TypeScript projects |
+| `npm run db:migrate` | Run database migrations when a database is selected |
+| `npm run db:seed` | Seed the database when a database is selected |
+| `npm test` | Run tests when testing is selected |
+| `npm run test:coverage` | Run tests with coverage when testing is selected |
 
-### Adding a New API Module
+## Local Development
 
-```
-src/api/
-└── posts/
-    ├── index.js          # Route definitions
-    ├── controller.js     # Business logic
-    ├── schema/
-    │   └── index.js      # Zod schemas
-    └── __test__/
-        └── posts.test.js # Tests
-```
-
-Then register it in `src/api/index.js`:
-
-```js
-import { posts } from "./posts/index.js";
-
-export const getApiRouter = () => {
-  const router = Router();
-  posts(router);
-  return router;
-};
-```
-
-## Development
+Clone this repository when you want to work on the generator itself.
 
 ```bash
-# Clone this repo
 git clone https://github.com/abdullahiqbal93/arc-express.git
 cd arc-express
-
-# Install dependencies
 npm install
-
-# Test locally
-node bin/index.js test-project
+npm run dev -- test-project
 ```
+
+Run the generator test suites:
+
+```bash
+npm test
+npm run test:render-matrix
+npm run test:combos
+```
+
+`npm run test:combos` scaffolds, installs, type-checks, and boots multiple generated project combinations. It can take several minutes.
+
+## Package Contents
+
+The published npm package includes:
+
+- `bin/` - CLI executable
+- `src/` - prompt, scaffold, dependency, and output logic
+- `templates/` - generated project templates
+- `README.md`
+- `LICENSE`
 
 ## License
 

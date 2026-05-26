@@ -319,10 +319,16 @@ async function generateEnvExample(targetDir, context) {
  * Generate README.md for the project.
  */
 async function generateReadme(targetDir, context) {
+  const ext = context.language === 'typescript' ? 'ts' : 'js';
   const lines = [
     `# ${context.projectName}`,
     '',
     `> Scaffolded with [create-arc-express](https://github.com/abdullahiqbal93/arc-express)`,
+    '',
+    '## Requirements',
+    '',
+    '- Node.js 18 or newer',
+    '- npm 9 or newer recommended',
     '',
     '## Quick Start',
     '',
@@ -351,19 +357,23 @@ async function generateReadme(targetDir, context) {
   lines.push('## Features');
   lines.push('');
   const featureList = {
-    auth: `- ✅ **Authentication** (${context.authStrategy === 'jwt' ? 'JWT' : 'Session-based'})`,
-    database: `- ✅ **Database** (${context.orm} + ${context.database})`,
-    oauth: '- ✅ **Google OAuth SSO**',
-    email: '- ✅ **Email** (Nodemailer SMTP)',
-    fileUpload: '- ✅ **File Upload** (Cloudinary + Multer)',
-    csrf: '- ✅ **CSRF Protection**',
-    audit: '- ✅ **Audit Logging**',
-    docker: '- ✅ **Docker Compose**',
-    testing: '- ✅ **Testing** (Vitest)',
-    githubActions: '- ✅ **GitHub Actions CI**',
+    auth: `- **Authentication** (${context.authStrategy === 'jwt' ? 'JWT' : 'session-based'})`,
+    database: `- **Database** (${context.orm} + ${context.database})`,
+    oauth: '- **Google OAuth SSO**',
+    email: '- **Email** (Nodemailer SMTP)',
+    fileUpload: '- **File Upload** (Cloudinary + Multer)',
+    csrf: '- **CSRF Protection**',
+    audit: '- **Audit Logging**',
+    docker: '- **Docker Compose**',
+    testing: '- **Testing** (Vitest)',
+    githubActions: '- **GitHub Actions CI**',
   };
-  for (const [key, label] of Object.entries(featureList)) {
-    if (context.features[key]) lines.push(label);
+  const selectedFeatures = Object.entries(featureList).filter(([key]) => context.features[key]);
+  if (selectedFeatures.length === 0) {
+    lines.push('- Minimal Express API scaffold');
+  }
+  for (const [, label] of selectedFeatures) {
+    lines.push(label);
   }
   lines.push('');
 
@@ -392,16 +402,19 @@ async function generateReadme(targetDir, context) {
   lines.push('');
   lines.push('```');
   lines.push('src/');
-  lines.push('├── api/              # Route handlers (controller + schema + tests)');
-  lines.push('│   └── status/       # Health check endpoint');
-  lines.push('├── db/               # Models, migrations, seeds');
-  lines.push('└── lib/              # Shared infrastructure');
-  lines.push('    ├── config.js     # Environment variables');
-  lines.push('    ├── server.js     # Express app factory');
-  lines.push('    ├── logger/       # Winston + Morgan logging');
-  lines.push('    ├── middlewares/  # Auth, validation, CSRF, etc.');
-  lines.push('    ├── services/     # Error/success response helpers');
-  lines.push('    └── utils/        # Reusable utilities');
+  lines.push('|-- api/              # Route modules');
+  lines.push('|   |-- index.' + ext + '         # Route registry');
+  lines.push('|   `-- status/       # Health check endpoint');
+  if (context.features.database) {
+    lines.push('|-- db/               # Models, migrations, seeds');
+  }
+  lines.push('`-- lib/              # Shared infrastructure');
+  lines.push('    |-- config.' + ext + '        # Environment variables');
+  lines.push('    |-- server.' + ext + '        # Express app factory');
+  lines.push('    |-- logger/       # Winston + Morgan logging');
+  lines.push('    |-- middlewares/  # Request middleware');
+  lines.push('    |-- services/     # Error/success response helpers');
+  lines.push('    `-- utils/        # Reusable utilities');
   lines.push('```');
   lines.push('');
   lines.push('## License');
