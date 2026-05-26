@@ -8,26 +8,81 @@ import { collectPrompts } from './prompts.js';
 import { scaffoldProject } from './scaffold.js';
 
 /**
- * Run a shell command and stream its stdout/stderr live to the terminal.
+ * Run npm install with a live-updating spinner.
+ * Parses npm output to show meaningful progress (e.g. "added 312 packages").
  */
-function runLive(cmd, args, cwd) {
+function runInstallWithSpinner(cwd) {
   return new Promise((resolve, reject) => {
     const isWin = process.platform === 'win32';
-    const child = spawn(cmd, args, {
+    const installSpinner = p.spinner();
+    installSpinner.start('Installing packages...');
+
+    const child = spawn('npm', ['install', '--no-fund'], {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      // Windows requires shell:true to run .cmd batch files (npm.cmd, etc.)
       shell: isWin,
     });
 
-    child.stdout.on('data', (d) => process.stdout.write(pc.dim(d.toString())));
-    child.stderr.on('data', (d) => process.stderr.write(pc.yellow(d.toString())));
+    let lastMeaningfulLine = '';
+    let packageCount = 0;
+    const errors = [];
+
+    const parseLine = (line) => {
+      // Pick up "added N packages" or "changed N packages"
+      const match = line.match(/(?:added|changed|removed|updated)\s+(\d+)\s+packages?/i);
+      if (match) {
+        packageCount = parseInt(match[1], 10);
+        installSpinner.message(`Installing packages... ${pc.dim(`(${packageCount} packages so far)`)}`);
+        return;
+      }
+
+      // Show the current package being resolved as subtle progress
+      const resolving = line.match(/^npm warn deprecated (.+?):/i);
+      if (resolving) return; // skip deprecated warnings from progress updates
+
+      // Show short meaningful progress lines
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('npm warn') && !trimmed.startsWith('npm notice')) {
+        lastMeaningfulLine = trimmed.slice(0, 60);
+        installSpinner.message(`Installing packages... ${pc.dim(lastMeaningfulLine)}`);
+      }
+    };
+
+    child.stdout.on('data', (d) => {
+      d.toString().split('\n').forEach(parseLine);
+    });
+
+    child.stderr.on('data', (d) => {
+      const text = d.toString();
+      // Filter out internal Node.js & husky noise
+      if (
+        text.includes('DeprecationWarning') ||
+        text.includes('[DEP') ||
+        text.includes(".git can't be found")
+      ) return;
+
+      // Collect real npm errors
+      const lines = text.split('\n').filter(l => l.includes('npm error') || l.includes('ERR!'));
+      errors.push(...lines);
+    });
 
     child.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`"${cmd} ${args.join(' ')}" exited with code ${code}`));
+      if (code === 0) {
+        const summary = packageCount > 0
+          ? `${pc.green('✓')} ${pc.bold(packageCount + ' packages')} installed`
+          : 'Dependencies installed';
+        installSpinner.stop(`Packages installed. ${pc.dim(summary)}`);
+        resolve();
+      } else {
+        installSpinner.stop(pc.red('Installation failed.'));
+        reject(new Error(errors.join('\n') || `npm install exited with code ${code}`));
+      }
     });
-    child.on('error', reject);
+
+    child.on('error', (err) => {
+      installSpinner.stop(pc.red('Installation failed.'));
+      reject(err);
+    });
   });
 }
 
@@ -93,10 +148,8 @@ export async function run(args) {
   }
 
   if (shouldInstall) {
-    p.log.step(pc.cyan('Installing dependencies — this may take a minute...\n'));
     try {
-      await runLive('npm', ['install', '--no-fund'], targetDir);
-      p.log.success(pc.green('Dependencies installed successfully.'));
+      await runInstallWithSpinner(targetDir);
     } catch (err) {
       p.log.error(pc.red(`Install failed: ${err.message}`));
       p.log.warn(pc.yellow('You can install them manually later using `npm install`.'));
@@ -115,13 +168,16 @@ export async function run(args) {
   }
 
   if (shouldGit) {
+    const gitSpinner = p.spinner();
+    gitSpinner.start('Initializing git repository...');
     try {
       execSync('git init', { cwd: targetDir, stdio: 'ignore' });
       execSync('git add .', { cwd: targetDir, stdio: 'ignore' });
       execSync('git commit -m "Initial commit from create-arc-express"', { cwd: targetDir, stdio: 'ignore' });
-      p.log.success('Initialized a git repository.');
+      gitSpinner.stop('Git repository initialized.');
     } catch {
-      p.log.error(pc.red('Failed to initialize git repository. Is git installed?'));
+      gitSpinner.stop(pc.red('Failed to initialize git repository.'));
+      p.log.warn(pc.yellow('Is git installed? You can run `git init` manually.'));
     }
   }
 
