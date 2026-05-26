@@ -70,6 +70,17 @@ export const getServer = () => {
 
 <%_ } -%>
 <%_ if (features.csrf) { -%>
+  /**
+   * @swagger
+   * /csrf-token:
+   *   get:
+   *     summary: Get CSRF token
+   *     tags: [Security]
+   *     description: Fetch a CSRF token to include in the x-csrf-token header of mutating requests.
+   *     responses:
+   *       200:
+   *         description: CSRF token retrieved successfully
+   */
   app.get(`${API_PATH}csrf-token`, (req, res) => {
     const token = generateCsrfToken(req, res, { overwrite: true });
     res.json({ success: true, data: { csrfToken: token } });

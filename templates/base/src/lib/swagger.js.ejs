@@ -35,20 +35,31 @@ const options = {
           name: "connect.sid",
         },
 <%_ } -%>
+<%_ if (features.csrf) { -%>
+        csrfAuth: {
+          type: "apiKey",
+          in: "header",
+          name: "x-csrf-token",
+          description: "CSRF token required for state-changing requests. Fetch from GET /api/csrf-token first.",
+        },
+<%_ } -%>
       },
     },
-<%_ if (features.auth) { -%>
+<%_ if (features.auth || features.csrf) { -%>
     security: [
-<%_ if (authStrategy === 'jwt') { -%>
+<%_ if (features.auth && authStrategy === 'jwt') { -%>
       { bearerAuth: [] },
-<%_ } else { -%>
+<%_ } else if (features.auth) { -%>
       { cookieAuth: [] },
+<%_ } -%>
+<%_ if (features.csrf) { -%>
+      { csrfAuth: [] },
 <%_ } -%>
     ],
 <%_ } -%>
   },
-  // Look for Swagger comments in all route files
-  apis: ["./src/api/**/*.js", "./src/api/**/*.ts"],
+  // Look for Swagger comments in all route files and server entry
+  apis: ["./src/api/**/*.js", "./src/api/**/*.ts", "./src/lib/server.js", "./src/lib/server.ts"],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
