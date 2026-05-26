@@ -1,7 +1,6 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 <%_ if (orm === 'sequelize') { -%>
 import User from "#db/models/user.<%= ext %>";
-import sequelize from "#lib/db/connect.<%= ext %>";
 <%_ } else if (orm === 'prisma') { -%>
 import prisma from "#lib/db/connect.<%= ext %>";
 <%_ } else if (orm === 'drizzle') { -%>

@@ -2,7 +2,7 @@ import globals from "globals";
 <%_ if (language === 'typescript') { -%>
 import tseslint from "typescript-eslint";
 <%_ } -%>
-import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
   {
@@ -18,14 +18,14 @@ export default [
 <%_ if (language === 'typescript') { -%>
   ...tseslint.configs.recommended,
 <%_ } -%>
-  eslintPluginPrettierRecommended,
+  eslintConfigPrettier,
   {
     rules: {
       "no-console": "off",
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
 <%_ if (language === 'typescript') { -%>
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "off",
 <%_ } -%>
     },
   },

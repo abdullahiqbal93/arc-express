@@ -18,6 +18,11 @@ import { mainLogger } from "#lib/logger/winston.<%= ext %>";
  */
 export const writeAuditLog = async ({ userId, action, entityType, entityId = null, metadata = null, req = null }) => {
   try {
+    const details = {
+      metadata,
+      ip: req?.ip || req?.headers?.["x-forwarded-for"] || null,
+      userAgent: req?.headers?.["user-agent"] || null,
+    };
 <%_ if (orm === 'sequelize') { -%>
     // await AuditLog.create({
     //   user_id: userId,
@@ -40,7 +45,7 @@ export const writeAuditLog = async ({ userId, action, entityType, entityId = nul
 <%_ } else { -%>
     // For Drizzle, use your preferred insert method
 <%_ } -%>
-    mainLogger.info(`AUDIT: ${action} on ${entityType}:${entityId} by user ${userId}`);
+    mainLogger.info(`AUDIT: ${action} on ${entityType}:${entityId} by user ${userId}`, details);
   } catch (error) {
     // Never let audit logging crash the request
     mainLogger.error("Audit log write failed:", error);

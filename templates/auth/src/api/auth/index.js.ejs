@@ -26,12 +26,8 @@ import { generateCsrfToken } from "#lib/middlewares/csrf.<%= ext %>";
 export const auth = (router) => {
 <%_ if (features.csrf) { -%>
   router.get("/auth/csrf-token", (req, res) => {
-    req.session.csrfInit = true;
     const token = generateCsrfToken(req, res, { overwrite: true });
-    req.session.save((err) => {
-      if (err) return res.status(500).json({ success: false, message: "Session error" });
-      res.json({ success: true, data: { csrfToken: token } });
-    });
+    res.json({ success: true, data: { csrfToken: token } });
   });
 
 <%_ } -%>

@@ -62,9 +62,14 @@ export async function collectPrompts(nameArg) {
     githubActions: selectedFeatures.includes('githubActions'),
   };
 
-  // ── Auto-enable database if auth or audit is selected ─────────
+  // ── Auto-enable required dependencies between features ─────────
+  if (features.oauth && !features.auth) {
+    p.log.info(pc.dim('Google OAuth requires authentication — auto-enabling Authentication.'));
+    features.auth = true;
+  }
+
   if ((features.auth || features.audit) && !features.database) {
-    p.log.info(pc.dim('Auth/Audit requires a database — auto-enabling Database.'));
+    p.log.info(pc.dim('Auth/Audit/OAuth requires a database — auto-enabling Database.'));
     features.database = true;
   }
 

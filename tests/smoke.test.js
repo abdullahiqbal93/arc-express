@@ -7,11 +7,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = path.join(__dirname, '..', 'test-output', 'test-api');
+const BASE_OUT = path.join(__dirname, '..', 'test-output');
 
-const context = {
-  projectName: 'test-api',
-  language: 'javascript',
+const baseContext = {
   features: {
     auth: true,
     database: true,
@@ -30,29 +28,52 @@ const context = {
 };
 
 async function run() {
-  console.log('Cleaning output directory...');
-  await fs.remove(OUT_DIR);
+  const cases = [
+    { projectName: 'test-api-js', language: 'javascript' },
+    { projectName: 'test-api-ts', language: 'typescript' },
+  ];
 
-  console.log('Scaffolding with ALL features (Sequelize + PostgreSQL + Session)...');
-  await scaffoldProject(OUT_DIR, context);
+  for (const testCase of cases) {
+    const outDir = path.join(BASE_OUT, testCase.projectName);
+    const context = { ...baseContext, ...testCase };
 
-  // List generated files
-  const files = await getAllFiles(OUT_DIR);
-  const rel = files.map(f => path.relative(OUT_DIR, f));
-  console.log(`\n✅ Generated ${rel.length} files:\n`);
-  rel.sort().forEach(f => console.log(`  ${f}`));
+    console.log(`Cleaning output directory for ${testCase.projectName}...`);
+    await fs.remove(outDir);
 
-  // Quick sanity checks
-  const pkg = await fs.readJSON(path.join(OUT_DIR, 'package.json'));
-  console.log(`\n📦 package.json name: ${pkg.name}`);
-  console.log(`   dependencies: ${Object.keys(pkg.dependencies).length}`);
-  console.log(`   devDependencies: ${Object.keys(pkg.devDependencies).length}`);
-  console.log(`   scripts: ${Object.keys(pkg.scripts).join(', ')}`);
+    console.log(`Scaffolding ${testCase.language} with ALL features...`);
+    await scaffoldProject(outDir, context);
 
-  const envExample = await fs.readFile(path.join(OUT_DIR, '.env.example'), 'utf-8');
-  console.log(`\n📄 .env.example sections: ${(envExample.match(/^#\s*═/gm) || []).length}`);
+    const files = await getAllFiles(outDir);
+    const rel = files.map((f) => path.relative(outDir, f)).sort();
+    console.log(`\n✅ ${testCase.projectName}: generated ${rel.length} files`);
+
+    const pkg = await fs.readJSON(path.join(outDir, 'package.json'));
+    const envExample = await fs.readFile(path.join(outDir, '.env.example'), 'utf-8');
+
+    assert(pkg.name === testCase.projectName, 'package.json name should match project name');
+    assert(!pkg.devDependencies['eslint-plugin-prettier'], 'generated lint config should not require eslint-plugin-prettier');
+    assert(envExample.includes('CSRF_SECRET='), '.env.example should include CSRF_SECRET when CSRF is selected');
+    assert(rel.includes(path.join('.github', 'workflows', 'ci.yml')), 'GitHub Actions workflow should be generated');
+
+    if (testCase.language === 'typescript') {
+      assert(rel.includes('eslint.config.js'), 'TypeScript projects should keep eslint.config.js');
+      assert(!rel.includes('eslint.config.ts'), 'TypeScript projects should not generate eslint.config.ts');
+
+      const swagger = await fs.readFile(path.join(outDir, 'src', 'lib', 'swagger.ts'), 'utf-8');
+      assert(!swagger.includes('&#34;'), 'TypeScript Swagger template should not HTML-escape quotes');
+      assert(swagger.includes('app: Application'), 'TypeScript Swagger template should render a valid Application type');
+    }
+
+    console.log(`   dependencies: ${Object.keys(pkg.dependencies).length}`);
+    console.log(`   devDependencies: ${Object.keys(pkg.devDependencies).length}`);
+    console.log(`   scripts: ${Object.keys(pkg.scripts).join(', ')}`);
+  }
 
   console.log('\n🎉 Smoke test passed!');
+}
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
 }
 
 async function getAllFiles(dir) {

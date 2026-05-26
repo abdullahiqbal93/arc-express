@@ -27,7 +27,6 @@ const BASE_DEV_DEPS = {
   'eslint':    '^9.0.0',
   'prettier':  '^3.4.2',
   'eslint-config-prettier': '^9.1.0',
-  'eslint-plugin-prettier': '^5.2.1',
   'globals':   '^15.0.0',
   'husky':     '^9.1.7',
 };

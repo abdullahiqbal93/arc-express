@@ -99,8 +99,9 @@ async function copyTemplate(templateName, targetDir, context) {
       const template = await fs.readFile(filePath, 'utf-8');
       const rendered = ejs.render(template, context, { filename: filePath });
 
-      // Swap .js → .ts if TypeScript
-      if (context.language === 'typescript' && outputRelPath.endsWith('.js')) {
+      // Swap generated source files from .js to .ts if TypeScript.
+      // Keep tooling config files as .js so ESLint/Vitest/Drizzle do not need TS config loaders.
+      if (context.language === 'typescript' && shouldSwapToTypeScript(outputRelPath)) {
         outputRelPath = outputRelPath.slice(0, -3) + '.ts';
       }
 
@@ -108,8 +109,8 @@ async function copyTemplate(templateName, targetDir, context) {
       await fs.ensureDir(path.dirname(outputPath));
       await fs.writeFile(outputPath, rendered, 'utf-8');
     } else {
-      // Swap .js → .ts if TypeScript
-      if (context.language === 'typescript' && outputRelPath.endsWith('.js')) {
+      // Swap generated source files from .js to .ts if TypeScript.
+      if (context.language === 'typescript' && shouldSwapToTypeScript(outputRelPath)) {
         outputRelPath = outputRelPath.slice(0, -3) + '.ts';
       }
 
@@ -118,6 +119,11 @@ async function copyTemplate(templateName, targetDir, context) {
       await fs.copy(filePath, outputPath, { overwrite: true });
     }
   }
+}
+
+function shouldSwapToTypeScript(relativePath) {
+  const normalized = relativePath.replace(/\\/g, '/');
+  return normalized.startsWith('src/') && normalized.endsWith('.js');
 }
 
 /**
@@ -243,6 +249,14 @@ async function generateEnvExample(targetDir, context) {
       lines.push('JWT_EXPIRES_IN=7d');
     }
     lines.push('SALT_FACTOR=10');
+    lines.push('');
+  }
+
+  if (context.features.csrf) {
+    lines.push('# ══════════════════════════════════════════');
+    lines.push('# CSRF');
+    lines.push('# ══════════════════════════════════════════');
+    lines.push('CSRF_SECRET=change-me-to-a-random-64-char-string');
     lines.push('');
   }
 

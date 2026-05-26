@@ -13,7 +13,8 @@
   ],
   "scripts": {
     "dev": "node bin/index.js",
-    "test": "node tests/combos.test.js"
+    "test": "node tests/smoke.test.js",
+    "test:combos": "node tests/combos.test.js"
   },
   "keywords": [
     "express",

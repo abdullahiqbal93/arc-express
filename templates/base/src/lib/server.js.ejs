@@ -5,7 +5,7 @@ import { morganMiddleware } from './logger/morgan.<%= ext %>';
 import { expressErrorHandler } from './services/error.<%= ext %>';
 import { sanitizeBody } from './middlewares/sanitize.<%= ext %>';
 <%_ if (features.csrf) { -%>
-import { doubleCsrfProtection } from './middlewares/csrf.<%= ext %>';
+import { doubleCsrfProtection, generateCsrfToken } from './middlewares/csrf.<%= ext %>';
 <%_ } -%>
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -70,6 +70,11 @@ export const getServer = () => {
 
 <%_ } -%>
 <%_ if (features.csrf) { -%>
+  app.get(`${API_PATH}csrf-token`, (req, res) => {
+    const token = generateCsrfToken(req, res, { overwrite: true });
+    res.json({ success: true, data: { csrfToken: token } });
+  });
+
   // ── CSRF ─────────────────────────────────────────────────────
   app.use((req, res, next) => {
     doubleCsrfProtection(req, res, (err) => {

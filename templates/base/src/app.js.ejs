@@ -23,6 +23,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 <% if (language === 'typescript') { -%>
+// eslint-disable-next-line prefer-const
 let httpServer: import("http").Server | undefined;
 <% } else { -%>
 let httpServer;

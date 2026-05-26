@@ -14,8 +14,8 @@ const {
   generateCsrfToken,
   doubleCsrfProtection,
 } = doubleCsrf({
-  getSecret: () => env.SESSION_SECRET,
-  getSessionIdentifier: (req) => req.session?.id ?? "",
+  getSecret: () => env.CSRF_SECRET,
+  getSessionIdentifier: (req) => req.session?.id ?? req.ip ?? "anonymous",
   getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"],
   cookieName: "__csrf",
   cookieOptions: {

@@ -9,10 +9,14 @@ cloudinary.config({
   api_secret: env.CLOUDINARY_API_SECRET,
 });
 
-const storage = new multer.memoryStorage();
+const storage = multer.memoryStorage();
 
 export async function imageUploadUtil(file) {
-  const result = await cloudinary.uploader.upload(file, {
+  const uploadSource = file?.buffer
+    ? `data:${file.mimetype || "application/octet-stream"};base64,${file.buffer.toString("base64")}`
+    : file?.path || file;
+
+  const result = await cloudinary.uploader.upload(uploadSource, {
     resource_type: "auto",
   });
   return result.secure_url;

@@ -1,6 +1,9 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+<%_ if (language === 'typescript') { -%>
+import type { Application } from "express";
+<%_ } -%>
 import { env } from "./config.<%= ext %>";
 
 const options = {
@@ -50,7 +53,7 @@ const options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
-export const setupSwagger = (app<%= language === 'typescript' ? ': import("express").Application' : '' %>) => {
+export const setupSwagger = (app<%- language === 'typescript' ? ': Application' : '' %>) => {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customSiteTitle: "API Documentation",
   }));
