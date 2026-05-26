@@ -70,23 +70,57 @@ export const setupSwagger = (app<%- language === 'typescript' ? ': Application' 
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customSiteTitle: "API Documentation",
 <%_ if (features.csrf) { -%>
-    swaggerOptions: {
-      persistAuthorization: true,
-      // Automatically fetch and attach the CSRF token for all mutating requests
-      requestInterceptor: (request) => {
-        const CSRF_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
-        if (!CSRF_METHODS.includes(request.method?.toUpperCase())) return request;
-        return fetch('/api/' + (window.__API_VERSION__ || 'v1') + '/csrf-token')
-          .then(r => r.json())
-          .then(data => {
-            if (data?.data?.csrfToken) {
-              request.headers['x-csrf-token'] = data.data.csrfToken;
+    customJsStr: `
+      // ── Auto CSRF for Swagger UI ─────────────────────────────────
+      // Monkey-patches fetch so every POST/PUT/PATCH/DELETE request
+      // automatically gets a fresh CSRF token + the __csrf cookie.
+      (function() {
+        const _fetch = window.fetch.bind(window);
+        const MUTATING = new Set(['POST','PUT','PATCH','DELETE']);
+        let _token = null;
+
+        async function refreshToken() {
+          try {
+            const r = await _fetch(
+              window.location.origin + '/api/' + '${env.VERSION}' + '/csrf-token',
+              { credentials: 'include' }
+            );
+            const json = await r.json();
+            _token = json?.data?.csrfToken || null;
+          } catch(e) { _token = null; }
+        }
+
+        // Pre-fetch a token as soon as the page loads
+        refreshToken();
+
+        window.fetch = async function(url, opts) {
+          opts = opts || {};
+          const method = (opts.method || 'GET').toUpperCase();
+
+          // Skip intercepting the csrf-token endpoint itself
+          if (typeof url === 'string' && url.includes('csrf-token')) {
+            return _fetch(url, Object.assign(opts, { credentials: 'include' }));
+          }
+
+          if (MUTATING.has(method)) {
+            // Always get a fresh token right before the request
+            await refreshToken();
+            if (_token) {
+              opts.headers = opts.headers || {};
+              if (opts.headers instanceof Headers) {
+                opts.headers.set('x-csrf-token', _token);
+              } else {
+                opts.headers['x-csrf-token'] = _token;
+              }
             }
-            return request;
-          })
-          .catch(() => request);
-      },
-    },
+            // Ensure cookies (__csrf) are sent
+            opts.credentials = 'include';
+          }
+
+          return _fetch(url, opts);
+        };
+      })();
+    `,
 <%_ } -%>
   }));
 };
