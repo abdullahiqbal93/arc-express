@@ -69,25 +69,5 @@ const swaggerSpec = swaggerJsdoc(options);
 export const setupSwagger = (app<%- language === 'typescript' ? ': Application' : '' %>) => {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customSiteTitle: "API Documentation",
-<%_ if (features.csrf) { -%>
-    // Force Swagger UI to include cookies (especially __csrf) in every request
-    swaggerOptions: {
-      fetchOptions: {
-        credentials: "include",
-      },
-    },
-    // Auto-fetch a CSRF token and pre-authorize so the user never has to copy-paste
-    customJsStr: `
-      window.addEventListener("load", async function() {
-        try {
-          var res = await fetch("/api/${env.VERSION}/csrf-token", { credentials: "include" });
-          var data = await res.json();
-          if (data && data.data && data.data.csrfToken && window.ui) {
-            window.ui.preauthorizeApiKey("csrfAuth", data.data.csrfToken);
-          }
-        } catch(e) {}
-      });
-    `,
-<%_ } -%>
   }));
 };

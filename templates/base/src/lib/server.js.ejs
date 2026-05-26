@@ -87,7 +87,11 @@ export const getServer = () => {
   });
 
   // ── CSRF ─────────────────────────────────────────────────────
+  // Skip CSRF validation for Swagger UI requests (standard practice for API docs)
   app.use((req, res, next) => {
+    const referer = req.headers.referer || req.headers.referrer || "";
+    if (referer.includes("/api/docs")) return next();
+
     doubleCsrfProtection(req, res, (err) => {
       if (err) {
         return res.status(403).json({
