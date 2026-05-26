@@ -1,3 +1,6 @@
+// Suppress Node.js internal deprecation warnings (e.g. DEP0190 from shell:true spawn on Windows)
+process.noDeprecation = true;
+
 import * as p from '@clack/prompts';
 import path from 'path';
 import fs from 'fs-extra';
