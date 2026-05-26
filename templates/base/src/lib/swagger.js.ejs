@@ -64,8 +64,52 @@ const options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
+<%_ if (features.csrf) { -%>
+const customJsStr = `
+  setInterval(() => {
+    const authWrapper = document.querySelector('.auth-btn-wrapper');
+    if (authWrapper && !document.getElementById('auto-csrf-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'auto-csrf-btn';
+      btn.textContent = 'Generate CSRF Token';
+      btn.className = 'btn modal-btn auth authorize button';
+      btn.style.marginLeft = '10px';
+      btn.style.backgroundColor = '#0b6ebd';
+      btn.style.borderColor = '#0b6ebd';
+      
+      btn.onclick = async () => {
+        btn.textContent = 'Generating...';
+        try {
+          const res = await fetch('${env.API_BASE_URL || "/api/v1/"}csrf-token');
+          const data = await res.json();
+          const inputs = document.querySelectorAll('.auth-container input');
+          inputs.forEach(input => {
+            if (input.closest('.auth-container').textContent.includes('csrfAuth')) {
+              let setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+              setter.call(input, data.data.csrfToken);
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          });
+          btn.textContent = 'Generated & Filled!';
+          setTimeout(() => btn.textContent = 'Generate CSRF Token', 2000);
+        } catch (e) {
+          btn.textContent = 'Failed';
+          setTimeout(() => btn.textContent = 'Generate CSRF Token', 2000);
+        }
+      };
+      
+      // Insert right next to Authorize and Close
+      authWrapper.insertBefore(btn, authWrapper.firstChild);
+    }
+  }, 500);
+`;
+<%_ } -%>
+
 export const setupSwagger = (app<%- language === 'typescript' ? ': Application' : '' %>) => {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customSiteTitle: "API Documentation",
+<%_ if (features.csrf) { -%>
+    customJsStr,
+<%_ } -%>
   }));
 };
