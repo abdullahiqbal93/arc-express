@@ -29,6 +29,9 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
 <%_ if (features.testing) { -%>
       - name: Run tests
         run: npm test --if-present

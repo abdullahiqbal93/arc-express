@@ -68,10 +68,6 @@ export const getServer = () => {
       },
     })
   );
-<%_ if (orm === 'sequelize') { -%>
-  sessionStore.sync();
-<%_ } -%>
-
 <%_ } -%>
 <%_ if (features.csrf) { -%>
   /**

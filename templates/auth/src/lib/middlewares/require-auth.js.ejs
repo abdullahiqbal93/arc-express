@@ -36,12 +36,13 @@ export const requireAuth = async (req<%- language === 'typescript' ? ': Request'
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Authentication required");
   }
+  let userId<%- language === 'typescript' ? ': number' : '' %>;
   try {
     const decoded = jwt.verify(authHeader.split(" ")[1], env.JWT_SECRET)<%- language === 'typescript' ? ' as JwtPayload & { userId?: number }' : '' %>;
-    var userId = decoded.userId;
-    if (!userId) {
+    if (!decoded.userId) {
       return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Invalid or expired token");
     }
+    userId = decoded.userId;
   } catch {
     return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Invalid or expired token");
   }
@@ -64,7 +65,6 @@ export const requireAuth = async (req<%- language === 'typescript' ? ': Request'
     req.userId = user.id;
     next();
   } catch {
-    req.userId = userId;
-    next();
+    return createErrorResponse(res, null, StatusCodes.INTERNAL_SERVER_ERROR, "Authorization check failed");
   }
 };

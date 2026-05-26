@@ -5,9 +5,9 @@
  */
 
 <%_ if (database === 'postgresql') { -%>
-import db, { client } from "#lib/db/connect.<%= ext %>";
+import { client } from "#lib/db/connect.<%= ext %>";
 <%_ } else { -%>
-import db, { pool } from "#lib/db/connect.<%= ext %>";
+import { pool } from "#lib/db/connect.<%= ext %>";
 <%_ } -%>
 import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 

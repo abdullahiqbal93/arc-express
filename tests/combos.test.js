@@ -5,10 +5,11 @@ import { scaffoldProject } from '../src/scaffold.js';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync, spawn } from 'child_process';
+import { execFileSync, execSync, spawn } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_OUT = path.join(__dirname, '..', 'test-output');
+const RUN_ID = process.env.TEST_RUN_ID || `combos-${Date.now()}`;
+const BASE_OUT = path.join(__dirname, '..', 'test-output', RUN_ID);
 
 const allFeatures = { auth: true, database: true, oauth: true, email: true, fileUpload: true, csrf: true, audit: true, docker: true, testing: true, githubActions: true };
 
@@ -51,15 +52,20 @@ for (const language of languages) {
   }
 }
 
-function verifyServerBoot(outDir, name) {
+function verifyServerBoot(outDir, name, port) {
   return new Promise((resolve, reject) => {
     console.log(`🚀 Booting server for ${name}...`);
     fs.copySync(path.join(outDir, '.env.example'), path.join(outDir, '.env'));
     
     // We use npm run dev to test the watcher and tsx/nodemon integration
-    const child = spawn(/^win/.test(process.platform) ? 'npm.cmd' : 'npm', ['run', 'dev'], { cwd: outDir, shell: true });
+    const child = spawn(/^win/.test(process.platform) ? 'npm.cmd' : 'npm', ['run', 'dev'], {
+      cwd: outDir,
+      detached: process.platform !== 'win32',
+      env: { ...process.env, PORT: String(port) },
+    });
     
     let logs = '';
+    let settled = false;
     child.stdout.on('data', d => { logs += d.toString(); });
     child.stderr.on('data', d => { logs += d.toString(); });
 
@@ -67,7 +73,9 @@ function verifyServerBoot(outDir, name) {
     // If it crashes with a DB error, that's fine (we didn't start a DB).
     // If it crashes with a TransformError/SyntaxError, it fails.
     const timeout = setTimeout(() => {
-      child.kill();
+      if (settled) return;
+      settled = true;
+      killProcessTree(child);
       if (logs.includes('Transform failed') || logs.includes('SyntaxError') || logs.includes('Unexpected token')) {
         reject(new Error(`Syntax Error detected:\n${logs}`));
       } else {
@@ -77,6 +85,8 @@ function verifyServerBoot(outDir, name) {
     }, 5000);
 
     child.on('exit', (code) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timeout);
       if (logs.includes('Transform failed') || logs.includes('SyntaxError') || logs.includes('Unexpected token')) {
         reject(new Error(`Syntax Error detected (exited ${code}):\n${logs}`));
@@ -86,11 +96,38 @@ function verifyServerBoot(outDir, name) {
         resolve();
       }
     });
+
+    child.on('error', (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      reject(error);
+    });
   });
 }
 
+function killProcessTree(child) {
+  if (!child.pid) return;
+
+  try {
+    if (process.platform === 'win32') {
+      execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    } else {
+      process.kill(-child.pid, 'SIGTERM');
+    }
+  } catch {
+    try {
+      child.kill('SIGTERM');
+    } catch {
+      // Process already exited.
+    }
+  }
+}
+
 async function run() {
-  for (const { name, context } of combos) {
+  await fs.ensureDir(BASE_OUT);
+
+  for (const [index, { name, context }] of combos.entries()) {
     const outDir = path.join(BASE_OUT, name);
     await fs.remove(outDir);
     console.log(`\n⏳ Scaffolding: ${name}`);
@@ -107,7 +144,7 @@ async function run() {
         console.log(`✅ Typecheck passed for ${name}`);
       }
 
-      await verifyServerBoot(outDir, name);
+      await verifyServerBoot(outDir, name, 4100 + index);
     } catch (err) {
       console.error(`❌ FAILED for ${name}`);
       console.error(err.message);

@@ -99,6 +99,8 @@ async function copyTemplate(templateName, targetDir, context) {
       const template = await fs.readFile(filePath, 'utf-8');
       const rendered = ejs.render(template, context, { filename: filePath });
 
+      if (rendered.trim().length === 0) continue;
+
       // Swap generated source files from .js to .ts if TypeScript.
       // Keep tooling config files as .js so ESLint/Vitest/Drizzle do not need TS config loaders.
       if (context.language === 'typescript' && shouldSwapToTypeScript(outputRelPath)) {
@@ -225,7 +227,7 @@ async function generateEnvExample(targetDir, context) {
     'PORT=3000',
     'CLIENT_BASE_URL=http://localhost:5173',
     'API_BASE_URL=http://localhost:3000/api/v1',
-    ...(context.orm === 'sequelize' ? ['LOG_SQL=false   # set to true to print raw SQL queries'] : []),
+    ...(context.features.database && context.orm === 'sequelize' ? ['LOG_SQL=false   # set to true to print raw SQL queries'] : []),
     '',
   ];
 
@@ -234,9 +236,13 @@ async function generateEnvExample(targetDir, context) {
     lines.push('# Database');
     lines.push('# ══════════════════════════════════════════');
     if (context.database === 'postgresql') {
-      lines.push('DATABASE_URL=postgres://postgres:password@localhost:5432/mydb');
+      lines.push(context.features.docker
+        ? 'DATABASE_URL=postgres://app_user:app_pass@localhost:5432/app_db'
+        : 'DATABASE_URL=postgres://postgres:password@localhost:5432/mydb');
     } else {
-      lines.push('DATABASE_URL=mysql://root:password@localhost:3306/mydb');
+      lines.push(context.features.docker
+        ? 'DATABASE_URL=mysql://app_user:app_pass@localhost:3306/app_db'
+        : 'DATABASE_URL=mysql://root:password@localhost:3306/mydb');
     }
     lines.push('');
   }
@@ -324,14 +330,16 @@ async function generateReadme(targetDir, context) {
     'cp .env.example .env    # edit with your values',
   ];
 
-  if (context.orm === 'prisma') {
-    lines.push('npx prisma generate');
-    lines.push('npx prisma migrate dev');
-  } else if (context.orm === 'drizzle') {
-    lines.push('npx drizzle-kit generate');
-    lines.push('npm run db:migrate');
-  } else if (context.orm === 'sequelize') {
-    lines.push('npm run db:migrate');
+  if (context.features.database) {
+    if (context.orm === 'prisma') {
+      lines.push('npx prisma generate');
+      lines.push('npx prisma migrate dev');
+    } else if (context.orm === 'drizzle') {
+      lines.push('npx drizzle-kit generate');
+      lines.push('npm run db:migrate');
+    } else if (context.orm === 'sequelize') {
+      lines.push('npm run db:migrate');
+    }
   }
 
   lines.push('npm run dev');

@@ -8,12 +8,14 @@ import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 <%_ if (language === 'typescript') { -%>
 import type { Request } from "express";
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 type AuditLogOptions = {
   userId: number | null;
   action: string;
   entityType: string;
   entityId?: number | string | null;
-  metadata?: unknown;
+  metadata?: JsonValue;
   req?: Request | null;
 };
 <%_ } -%>

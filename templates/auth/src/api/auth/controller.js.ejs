@@ -12,7 +12,7 @@ import prisma from "#lib/db/connect.<%= ext %>";
 <%_ } else if (orm === 'drizzle') { -%>
 import db from "#lib/db/connect.<%= ext %>";
 import { users } from "#db/schema/index.<%= ext %>";
-import { eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 <%_ } -%>
 import { createErrorResponse } from "#lib/services/error.<%= ext %>";
 import { createSuccessResponse } from "#lib/services/success.<%= ext %>";
@@ -29,7 +29,9 @@ import bcrypt from "bcryptjs";
 <%_ if (authStrategy === 'jwt') { -%>
 import jwt<%- language === 'typescript' ? ', { type SignOptions }' : '' %> from "jsonwebtoken";
 <%_ } -%>
+<%_ if (features.email) { -%>
 import crypto from "crypto";
+<%_ } -%>
 <%_ if (orm === 'sequelize') { -%>
 import { Op } from "sequelize";
 <%_ } -%>
@@ -190,7 +192,7 @@ export const me = async <%- authHandlerArgs %> => {
 <%_ if (orm === 'sequelize') { -%>
     const { password_hash: _password_hash, ...data } = user.toJSON();
 <%_ } else { -%>
-    const { passwordHash, ...data } = user;
+    const { passwordHash: _passwordHash, ...data } = user;
 <%_ } -%>
     createSuccessResponse(res, data, StatusCodes.OK);
   } catch (e) {
@@ -317,7 +319,7 @@ export const validateResetToken = async <%- handlerArgs %> => {
     });
 <%_ } else { -%>
     const [user] = await db.select().from(users)
-      .where(eq(users.resetPasswordToken, hashed))
+      .where(and(eq(users.resetPasswordToken, hashed), gt(users.resetPasswordExpires, new Date())))
       .limit(1);
 <%_ } -%>
 
@@ -344,7 +346,7 @@ export const resetPassword = async <%- handlerArgs %> => {
     });
 <%_ } else { -%>
     const [user] = await db.select().from(users)
-      .where(eq(users.resetPasswordToken, hashed))
+      .where(and(eq(users.resetPasswordToken, hashed), gt(users.resetPasswordExpires, new Date())))
       .limit(1);
 <%_ } -%>
     if (!user) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Invalid or expired reset token");

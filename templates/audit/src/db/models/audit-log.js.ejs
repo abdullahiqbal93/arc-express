@@ -5,6 +5,8 @@ import sequelize from "#lib/db/connect.<%= ext %>";
 <%_ if (language === 'typescript') { -%>
 import type { InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 class AuditLog extends Model<
   InferAttributes<AuditLog, { omit: "createdAt" }>,
   InferCreationAttributes<AuditLog, { omit: "createdAt" }>
@@ -14,7 +16,7 @@ class AuditLog extends Model<
   declare action: string;
   declare entityType: string;
   declare entityId: CreationOptional<string | null>;
-  declare metadata: CreationOptional<any>;
+  declare metadata: CreationOptional<JsonValue>;
   declare ip: CreationOptional<string | null>;
   declare userAgent: CreationOptional<string | null>;
   declare createdAt: CreationOptional<Date>;

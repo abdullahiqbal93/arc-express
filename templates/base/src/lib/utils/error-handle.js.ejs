@@ -8,53 +8,83 @@ export class ValidationError extends Error {
   }
 }
 
-export const handleError = (err<%= language === 'typescript' ? ': any' : '' %>) => {
+<%_ if (language === 'typescript') { -%>
+type ErrorDetail = {
+  message?: string;
+  path?: string;
+};
+
+type ErrorLike = {
+  name?: string;
+  message?: string;
+  code?: string;
+  errno?: number;
+  errors?: ErrorDetail[];
+  meta?: {
+    target?: string[] | string;
+  };
+};
+
+const toErrorLike = (err: unknown): ErrorLike => {
+  if (err && typeof err === "object") return err as ErrorLike;
+  return { message: String(err) };
+};
+<%_ } else { -%>
+const toErrorLike = (err) => {
+  if (err && typeof err === "object") return err;
+  return { message: String(err) };
+};
+<%_ } -%>
+
+export const handleError = (err<%= language === 'typescript' ? ': unknown' : '' %>) => {
+  const error = toErrorLike(err);
 <%_ if (features.database && orm === 'sequelize') { -%>
-  if (err.name === "SequelizeUniqueConstraintError") {
-    const field = err.errors?.[0]?.path || "field";
+  if (error.name === "SequelizeUniqueConstraintError") {
+    const field = error.errors?.[0]?.path || "field";
     mainLogger.error("DB_ERROR", err);
     return `Duplicate value for ${field}`;
   }
 
-  if (err.name === "SequelizeValidationError") {
+  if (error.name === "SequelizeValidationError") {
     mainLogger.error("DB_ERROR", err);
-    return err.errors?.map((e<%= language === 'typescript' ? ': any' : '' %>) => e.message).join(", ") || "Validation error";
+    return error.errors?.map((detail) => detail.message).join(", ") || "Validation error";
   }
 
-  if (err.name === "SequelizeForeignKeyConstraintError") {
+  if (error.name === "SequelizeForeignKeyConstraintError") {
     mainLogger.error("DB_ERROR", err);
     return "Referenced record not found";
   }
 
-  if (err.name === "SequelizeDatabaseError") {
+  if (error.name === "SequelizeDatabaseError") {
     mainLogger.error("DB_ERROR", err);
     return "Database error";
   }
 
 <%_ } else if (features.database && orm === 'prisma') { -%>
-  if (err.code === "P2002") {
-    const field = err.meta?.target?.[0] || "field";
+  if (error.code === "P2002") {
+    const target = error.meta?.target;
+    const field = Array.isArray(target) ? target[0] : target || "field";
     mainLogger.error("DB_ERROR", err);
     return `Duplicate value for ${field}`;
   }
 
-  if (err.code === "P2025") {
+  if (error.code === "P2025") {
     mainLogger.error("DB_ERROR", err);
     return "Record not found";
   }
 
-  if (err.code?.startsWith?.("P")) {
+  if (error.code?.startsWith("P")) {
     mainLogger.error("DB_ERROR", err);
     return "Database error";
   }
 
 <%_ } else if (features.database && orm === 'drizzle') { -%>
-  if (err.code === "23505") {
+  if (error.code === "23505" || error.code === "ER_DUP_ENTRY" || error.errno === 1062) {
     mainLogger.error("DB_ERROR", err);
     return "Duplicate value";
   }
 
-  if (err.code === "23503") {
+  if (error.code === "23503" || error.code === "ER_NO_REFERENCED_ROW_2" || error.errno === 1452) {
     mainLogger.error("DB_ERROR", err);
     return "Referenced record not found";
   }
@@ -64,5 +94,5 @@ export const handleError = (err<%= language === 'typescript' ? ': any' : '' %>) 
     return err.message;
   }
 
-  return err.message ? err.message : "Something went wrong";
+  return error.message ? error.message : "Something went wrong";
 };

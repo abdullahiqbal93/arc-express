@@ -13,7 +13,9 @@ import {
 import {
   registerSchema, loginSchema,
   updateProfileSchema, changePasswordSchema,
+<%_ if (features.email) { -%>
   forgotPasswordSchema, resetPasswordSchema, validateResetTokenSchema,
+<%_ } -%>
   deleteAccountSchema,
 } from "./schema/index.<%= ext %>";
 import { validateRequestBody } from "#lib/middlewares/validate.<%= ext %>";
