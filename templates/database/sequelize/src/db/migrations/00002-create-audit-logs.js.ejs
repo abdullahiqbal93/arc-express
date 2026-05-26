@@ -19,7 +19,8 @@ export async function up({ context: queryInterface }<%- language === 'typescript
 
   await queryInterface.addIndex("audit_logs", ["user_id"]);
   await queryInterface.addIndex("audit_logs", ["action"]);
-  await queryInterface.addIndex("audit_logs", ["entity_type", "entity_id"]);
+  await queryInterface.addIndex("audit_logs", ["entity_type"]);
+  await queryInterface.addIndex("audit_logs", ["entity_id"]);
 }
 
 export async function down({ context: queryInterface }<%- language === 'typescript' ? ': { context: QueryInterface }' : '' %>) {
