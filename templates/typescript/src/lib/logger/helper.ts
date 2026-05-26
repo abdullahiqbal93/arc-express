@@ -107,7 +107,7 @@ export const prettyPrintMessage = (
   message: string,
 ) => {
   if (isNotEmpty(obj)) {
-    return `${segment(`DETAILS ${getSymbol("âŸ±", "=>")}`)} \n ${inspect(obj, { sorted: true, breakLength: 1, depth: 7 })}\n${fill(fillWithPad(message))}${segment(fillWithPad(`DETAILS END ${getSymbol("âŸ°")}`, 24))}`;
+    return `${segment(`DETAILS ${getSymbol("▼", "=>")}`)} \n ${inspect(obj, { sorted: true, breakLength: 1, depth: 7 })}\n${fill(fillWithPad(message))}${segment(fillWithPad(`DETAILS END ${getSymbol("▲")}`, 24))}`;
   }
   return "";
 };

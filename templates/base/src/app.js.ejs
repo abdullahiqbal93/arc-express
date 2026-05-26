@@ -68,6 +68,7 @@ const port = env.PORT || 3000;
 
 httpServer = app.listen(port, () => {
   mainLogger.info(`Server listening on http://localhost:${port}`);
+  mainLogger.info(`Swagger docs available at http://localhost:${port}/api/docs`);
 });
 
 export default app;

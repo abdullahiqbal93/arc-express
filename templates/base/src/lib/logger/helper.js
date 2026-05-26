@@ -79,7 +79,7 @@ export const getSegment = (separator = chalk.bgBlueBright.whiteBright, segment =
 
 export const prettyPrintMessage = (obj, segment, fill, message) => {
   if (isNotEmpty(obj)) {
-    return `${segment(`DETAILS ${getSymbol("⟱", "=>")}`)} \n ${inspect(obj, { sorted: true, breakLength: 1, depth: 7 })}\n${fill(fillWithPad(message))}${segment(fillWithPad(`DETAILS END ${getSymbol("⟰")}`, 24))}`;
+    return `${segment(`DETAILS ${getSymbol("▼", "=>")}`)} \n ${inspect(obj, { sorted: true, breakLength: 1, depth: 7 })}\n${fill(fillWithPad(message))}${segment(fillWithPad(`DETAILS END ${getSymbol("▲")}`, 24))}`;
   }
   return "";
 };
