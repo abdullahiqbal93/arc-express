@@ -1,9 +1,20 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
-import nodemailer from "nodemailer";
+import nodemailer<%- language === 'typescript' ? ', { type Transporter }' : '' %> from "nodemailer";
 import { env } from "#lib/config.<%= ext %>";
 import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 
+<%_ if (language === 'typescript') { -%>
+type SendEmailOptions = {
+  to: string;
+  subject: string;
+  text?: string;
+  html?: string;
+};
+
+let transporter: Transporter | undefined;
+<%_ } else { -%>
 let transporter;
+<%_ } -%>
 
 export const initializeEmailTransporter = async () => {
   transporter = nodemailer.createTransport({
@@ -17,9 +28,10 @@ export const initializeEmailTransporter = async () => {
   });
 };
 
-export const sendEmail = async ({ to, subject, text, html }) => {
+export const sendEmail = async ({ to, subject, text, html }<%- language === 'typescript' ? ': SendEmailOptions' : '' %>) => {
   try {
     if (!transporter) await initializeEmailTransporter();
+    if (!transporter) throw new Error("Email transporter was not initialized");
     const info = await transporter.sendMail({
       from: env.EMAIL_FROM || '"App" <noreply@app.com>',
       to,
@@ -29,12 +41,13 @@ export const sendEmail = async ({ to, subject, text, html }) => {
     });
     return info;
   } catch (error) {
-    mainLogger.error(`Error sending email: ${error.message}`);
+    const message = error instanceof Error ? error.message : "Unknown email error";
+    mainLogger.error(`Error sending email: ${message}`);
     throw error;
   }
 };
 
-export const sendPasswordResetEmail = async (to, resetToken, name) => {
+export const sendPasswordResetEmail = async (to<%- language === 'typescript' ? ': string' : '' %>, resetToken<%- language === 'typescript' ? ': string' : '' %>, name<%- language === 'typescript' ? ': string' : '' %>) => {
   const resetUrl = `${env.CLIENT_BASE_URL}/reset-password/${resetToken}`;
   return sendEmail({
     to,

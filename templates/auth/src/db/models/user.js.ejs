@@ -1,0 +1,121 @@
+<%_ if (language === 'typescript') { -%>
+import { DataTypes, Model, type CreationOptional, type InferAttributes, type InferCreationAttributes } from "sequelize";
+import sequelize from "#lib/db/connect.ts";
+
+class User extends Model<
+  InferAttributes<User, { omit: "createdAt" | "updatedAt" }>,
+  InferCreationAttributes<User, { omit: "createdAt" | "updatedAt" }>
+> {
+  declare id: CreationOptional<number>;
+  declare email: string;
+  declare name: string;
+  declare password_hash: CreationOptional<string | null>;
+  declare role: CreationOptional<string>;
+  declare status: CreationOptional<string>;
+  declare google_id: CreationOptional<string | null>;
+  declare reset_password_token: CreationOptional<string | null>;
+  declare reset_password_expires: CreationOptional<Date | null>;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+}
+
+User.init({
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  email: {
+    type: DataTypes.STRING(191),
+    allowNull: false,
+    unique: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  password_hash: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  role: {
+    type: DataTypes.STRING,
+    defaultValue: "user",
+  },
+  status: {
+    type: DataTypes.STRING,
+    defaultValue: "active",
+  },
+  google_id: {
+    type: DataTypes.STRING(191),
+    allowNull: true,
+    unique: true,
+  },
+  reset_password_token: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  reset_password_expires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+}, {
+  sequelize,
+  tableName: "users",
+  underscored: true,
+  timestamps: true,
+});
+
+export default User;
+<%_ } else { -%>
+import { DataTypes } from "sequelize";
+import sequelize from "#lib/db/connect.js";
+
+const User = sequelize.define("User", {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  email: {
+    type: DataTypes.STRING(191),
+    allowNull: false,
+    unique: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  password_hash: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  role: {
+    type: DataTypes.STRING,
+    defaultValue: "user",
+  },
+  status: {
+    type: DataTypes.STRING,
+    defaultValue: "active",
+  },
+  google_id: {
+    type: DataTypes.STRING(191),
+    allowNull: true,
+    unique: true,
+  },
+  reset_password_token: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  reset_password_expires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+}, {
+  tableName: "users",
+  underscored: true,
+  timestamps: true,
+});
+
+export default User;
+<%_ } -%>

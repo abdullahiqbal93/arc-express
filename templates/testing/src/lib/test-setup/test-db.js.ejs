@@ -1,5 +1,8 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
 import { GenericContainer } from "testcontainers";
+<%_ if (language === 'typescript') { -%>
+import type { StartedTestContainer } from "testcontainers";
+<%_ } -%>
 import { mainLogger } from "#lib/logger/winston.<%= ext %>";
 <%_ if (orm === 'sequelize') { -%>
 import { Sequelize } from "sequelize";
@@ -9,20 +12,23 @@ import { PrismaClient } from "@prisma/client";
 <%_ if (database === 'postgresql') { -%>
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+<%_ if (language === 'typescript') { -%>
+import type { Sql } from "postgres";
+<%_ } -%>
 <%_ } else { -%>
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 <%_ } -%>
 <%_ } -%>
 
-let container;
+let container<%- language === 'typescript' ? ': StartedTestContainer | undefined' : '' %>;
 <%_ if (orm === 'sequelize') { -%>
-let testDb;
+let testDb<%- language === 'typescript' ? ': Sequelize | undefined' : '' %>;
 <%_ } else if (orm === 'prisma') { -%>
-let testDb;
+let testDb<%- language === 'typescript' ? ': PrismaClient | undefined' : '' %>;
 <%_ } else if (orm === 'drizzle') { -%>
-let testDb;
-let client;
+let testDb<%- language === 'typescript' ? ': unknown' : '' %>;
+let client<%- language === 'typescript' ? (database === 'postgresql' ? ': Sql | undefined' : ': ReturnType<typeof mysql.createPool> | undefined') : '' %>;
 <%_ } -%>
 
 /**

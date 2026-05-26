@@ -14,12 +14,18 @@ import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { env } from "#lib/config.<%= ext %>";
 <%_ } -%>
+<%_ if (language === 'typescript') { -%>
+import type { NextFunction, Request, Response } from "express";
+<%_ if (authStrategy === 'jwt') { -%>
+import type { JwtPayload } from "jsonwebtoken";
+<%_ } -%>
+<%_ } -%>
 
 /**
  * Middleware to require an authenticated user.
  * Rejects suspended users. Attaches req.userId for downstream handlers.
  */
-export const requireAuth = async (req, res, next) => {
+export const requireAuth = async (req<%- language === 'typescript' ? ': Request' : '' %>, res<%- language === 'typescript' ? ': Response' : '' %>, next<%- language === 'typescript' ? ': NextFunction' : '' %>) => {
 <%_ if (authStrategy === 'session') { -%>
   if (!req.session || !req.session.userId) {
     return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Authentication required");
@@ -31,8 +37,11 @@ export const requireAuth = async (req, res, next) => {
     return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Authentication required");
   }
   try {
-    const decoded = jwt.verify(authHeader.split(" ")[1], env.JWT_SECRET);
+    const decoded = jwt.verify(authHeader.split(" ")[1], env.JWT_SECRET)<%- language === 'typescript' ? ' as JwtPayload & { userId?: number }' : '' %>;
     var userId = decoded.userId;
+    if (!userId) {
+      return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Invalid or expired token");
+    }
   } catch {
     return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Invalid or expired token");
   }

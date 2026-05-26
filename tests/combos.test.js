@@ -100,6 +100,13 @@ async function run() {
     try {
       execSync('npm install --no-audit --no-fund', { cwd: outDir, stdio: 'pipe' });
       console.log(`✅ Install successful for ${name}`);
+      
+      if (context.language === 'typescript') {
+        console.log(`🔎 Running typecheck for ${name}...`);
+        execSync('npm run typecheck', { cwd: outDir, stdio: 'pipe' });
+        console.log(`✅ Typecheck passed for ${name}`);
+      }
+
       await verifyServerBoot(outDir, name);
     } catch (err) {
       console.error(`❌ FAILED for ${name}`);

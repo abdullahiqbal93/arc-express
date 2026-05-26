@@ -56,8 +56,15 @@ async function run() {
     assert(rel.includes(path.join('.github', 'workflows', 'ci.yml')), 'GitHub Actions workflow should be generated');
 
     if (testCase.language === 'typescript') {
+      assert(pkg.scripts.typecheck === 'tsc --noEmit', 'TypeScript projects should include a typecheck script');
       assert(rel.includes('eslint.config.js'), 'TypeScript projects should keep eslint.config.js');
       assert(!rel.includes('eslint.config.ts'), 'TypeScript projects should not generate eslint.config.ts');
+      assert(rel.includes(path.join('src', 'types', 'express.d.ts')), 'TypeScript projects should include Express request augmentation');
+
+      const tsconfig = await fs.readJSON(path.join(outDir, 'tsconfig.json'));
+      assert(tsconfig.compilerOptions.strict === true, 'TypeScript projects should keep strict mode enabled');
+      assert(tsconfig.compilerOptions.noEmit === true, 'TypeScript projects should typecheck without emitting files');
+      assert(tsconfig.compilerOptions.allowImportingTsExtensions === true, 'TypeScript projects should support generated .ts imports');
 
       const swagger = await fs.readFile(path.join(outDir, 'src', 'lib', 'swagger.ts'), 'utf-8');
       assert(!swagger.includes('&#34;'), 'TypeScript Swagger template should not HTML-escape quotes');

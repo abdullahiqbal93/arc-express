@@ -1,0 +1,25 @@
+<%_ if (features.auth && authStrategy === 'session') { -%>
+import "express-session";
+<%_ } -%>
+
+declare global {
+  namespace Express {
+    interface Request {
+<%_ if (features.auth) { -%>
+      userId?: number;
+      isAdmin?: boolean;
+<%_ } -%>
+    }
+  }
+}
+
+<%_ if (features.auth && authStrategy === 'session') { -%>
+declare module "express-session" {
+  interface SessionData {
+    userId?: number;
+    csrfInit?: boolean;
+  }
+}
+<%_ } -%>
+
+export {};

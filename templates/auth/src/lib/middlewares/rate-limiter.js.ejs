@@ -1,10 +1,13 @@
+<%_ if (language === 'typescript') { -%>
+import type { Request } from "express";
+<%_ } -%>
 import rateLimit from "express-rate-limit";
 
 export const loginRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 10,
   message: "Too many attempts, please try again after 1 minute.",
-  keyGenerator: (req) => req.ip,
+  keyGenerator: (req<%- language === 'typescript' ? ': Request' : '' %>) => req.ip ?? req.headers["x-forwarded-for"]?.toString() ?? "unknown",
   standardHeaders: true,
   legacyHeaders: false,
 });

@@ -10,21 +10,28 @@ import db from "#lib/db/connect.<%= ext %>";
 import { users } from "#db/schema/index.<%= ext %>";
 import { eq } from "drizzle-orm";
 <%_ } -%>
+<%_ if (language === 'typescript') { -%>
+import type { NextFunction, Request, Response } from "express";
+<%_ } -%>
 
 /**
  * Middleware: require the logged-in user to be an admin.
  * Must be placed AFTER requireAuth.
  */
-export const requireAdmin = async (req, res, next) => {
+export const requireAdmin = async (req<%- language === 'typescript' ? ': Request' : '' %>, res<%- language === 'typescript' ? ': Response' : '' %>, next<%- language === 'typescript' ? ': NextFunction' : '' %>) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      return createErrorResponse(res, null, StatusCodes.UNAUTHORIZED, "Authentication required");
+    }
 <%_ if (orm === 'sequelize') { -%>
-    const user = await User.findByPk(req.userId, { attributes: ["id", "role"] });
+    const user = await User.findByPk(userId, { attributes: ["id", "role"] });
     if (!user || user.role !== "admin") {
 <%_ } else if (orm === 'prisma') { -%>
-    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { id: true, role: true } });
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
     if (!user || user.role !== "admin") {
 <%_ } else { -%>
-    const [user] = await db.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, req.userId)).limit(1);
+    const [user] = await db.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
     if (!user || user.role !== "admin") {
 <%_ } -%>
       return createErrorResponse(res, null, StatusCodes.FORBIDDEN, "Admin access required");

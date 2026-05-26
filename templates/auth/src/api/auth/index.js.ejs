@@ -22,10 +22,13 @@ import { loginRateLimiter } from "#lib/middlewares/rate-limiter.<%= ext %>";
 <%_ if (features.csrf) { -%>
 import { generateCsrfToken } from "#lib/middlewares/csrf.<%= ext %>";
 <%_ } -%>
+<%_ if (language === 'typescript') { -%>
+import type { Request, Response, Router } from "express";
+<%_ } -%>
 
-export const auth = (router) => {
+export const auth = (router<%- language === 'typescript' ? ': Router' : '' %>) => {
 <%_ if (features.csrf) { -%>
-  router.get("/auth/csrf-token", (req, res) => {
+  router.get("/auth/csrf-token", (req<%- language === 'typescript' ? ': Request' : '' %>, res<%- language === 'typescript' ? ': Response' : '' %>) => {
     const token = generateCsrfToken(req, res, { overwrite: true });
     res.json({ success: true, data: { csrfToken: token } });
   });

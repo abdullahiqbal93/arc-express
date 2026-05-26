@@ -1,4 +1,10 @@
 <% const ext = language === 'typescript' ? 'ts' : 'js'; -%>
+<% const requestType = language === 'typescript' ? ': Request' : ''; -%>
+<% const authRequestType = requestType; -%>
+<% const responseType = language === 'typescript' ? ': Response' : ''; -%>
+<% const handlerArgs = `(req${requestType}, res${responseType})`; -%>
+<% const authHandlerArgs = `(req${authRequestType}, res${responseType})`; -%>
+<% const userIdExpr = language === 'typescript' ? 'req.userId!' : 'req.userId'; -%>
 <%_ if (orm === 'sequelize') { -%>
 import User from "#db/models/user.<%= ext %>";
 <%_ } else if (orm === 'prisma') { -%>
@@ -21,16 +27,20 @@ import { env } from "#lib/config.<%= ext %>";
 import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcryptjs";
 <%_ if (authStrategy === 'jwt') { -%>
-import jwt from "jsonwebtoken";
+import jwt<%- language === 'typescript' ? ', { type SignOptions }' : '' %> from "jsonwebtoken";
 <%_ } -%>
 import crypto from "crypto";
 <%_ if (orm === 'sequelize') { -%>
 import { Op } from "sequelize";
 <%_ } -%>
+<%_ if (language === 'typescript') { -%>
+import type { Request, Response } from "express";
+<%_ } -%>
 
 <%_ if (authStrategy === 'jwt') { -%>
-function signToken(userId) {
-  return jwt.sign({ userId }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+function signToken(userId<%= language === 'typescript' ? ': number' : '' %>) {
+  const options<%- language === 'typescript' ? ': SignOptions' : '' %> = { expiresIn: env.JWT_EXPIRES_IN<%- language === 'typescript' ? ' as SignOptions["expiresIn"]' : '' %> };
+  return jwt.sign({ userId }, env.JWT_SECRET, options);
 }
 <%_ } -%>
 
@@ -48,7 +58,7 @@ const findById = (varName, id) => {
 };
 -%>
 // ── Register ──────────────────────────────────────────────────
-export const register = async (req, res) => {
+export const register = async <%- handlerArgs %> => {
   try {
     const { email, password, name } = req.body;
 
@@ -65,7 +75,12 @@ export const register = async (req, res) => {
 <%_ } else if (orm === 'prisma') { -%>
     const user = await prisma.user.create({ data: { email, passwordHash, name } });
 <%_ } else if (orm === 'drizzle') { -%>
+<%_ if (database === 'mysql') { -%>
+    const [{ id }] = await db.insert(users).values({ email, passwordHash, name }).$returningId();
+    const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+<%_ } else { -%>
     const [user] = await db.insert(users).values({ email, passwordHash, name }).returning();
+<%_ } -%>
 <%_ } -%>
 
 <%_ if (authStrategy === 'session') { -%>
@@ -91,7 +106,7 @@ export const register = async (req, res) => {
 };
 
 // ── Login ─────────────────────────────────────────────────────
-export const login = async (req, res) => {
+export const login = async <%- handlerArgs %> => {
   try {
     const { email, password } = req.body;
 
@@ -144,11 +159,11 @@ export const login = async (req, res) => {
 };
 
 // ── Logout ────────────────────────────────────────────────────
-export const logout = async (req, res) => {
+export const logout = async <%- handlerArgs %> => {
   try {
 <%_ if (authStrategy === 'session') { -%>
     const userId = req.session?.userId;
-    req.session.destroy((err) => {
+    req.session.destroy((err<%- language === 'typescript' ? ': Error | null' : '' %>) => {
       if (err) return createErrorResponse(res, handleError(err), StatusCodes.INTERNAL_SERVER_ERROR);
       res.clearCookie("connect.sid");
 <%_ if (features.audit) { -%>
@@ -166,15 +181,14 @@ export const logout = async (req, res) => {
 };
 
 // ── Me ────────────────────────────────────────────────────────
-export const me = async (req, res) => {
+export const me = async <%- authHandlerArgs %> => {
   try {
-    <%- findById('user', 'req.userId') %>
+    <%- findById('user', userIdExpr) %>
     if (!user) {
       return createErrorResponse(res, null, StatusCodes.NOT_FOUND, "User not found");
     }
 <%_ if (orm === 'sequelize') { -%>
-    const data = user.toJSON();
-    delete data.password_hash;
+    const { password_hash: _password_hash, ...data } = user.toJSON();
 <%_ } else { -%>
     const { passwordHash, ...data } = user;
 <%_ } -%>
@@ -185,9 +199,9 @@ export const me = async (req, res) => {
 };
 
 // ── Update Profile ────────────────────────────────────────────
-export const updateProfile = async (req, res) => {
+export const updateProfile = async <%- authHandlerArgs %> => {
   try {
-    <%- findById('user', 'req.userId') %>
+    <%- findById('user', userIdExpr) %>
     if (!user) return createErrorResponse(res, null, StatusCodes.NOT_FOUND, "User not found");
 
     const { name, email } = req.body;
@@ -206,10 +220,15 @@ export const updateProfile = async (req, res) => {
       const taken = await prisma.user.findFirst({ where: { email, NOT: { id: user.id } } });
       if (taken) return createErrorResponse(res, null, StatusCodes.CONFLICT, "Email already in use");
     }
-    const updated = await prisma.user.update({ where: { id: req.userId }, data: { ...(name && { name }), ...(email && { email }) } });
+    const updated = await prisma.user.update({ where: { id: <%- userIdExpr %> }, data: { ...(name && { name }), ...(email && { email }) } });
     createSuccessResponse(res, { id: updated.id, email: updated.email, name: updated.name }, StatusCodes.OK, "Profile updated");
 <%_ } else { -%>
-    const updated = await db.update(users).set({ ...(name && { name }), ...(email && { email }) }).where(eq(users.id, req.userId)).returning();
+<%_ if (database === 'mysql') { -%>
+    await db.update(users).set({ ...(name && { name }), ...(email && { email }) }).where(eq(users.id, <%- userIdExpr %>));
+    const updated = await db.select().from(users).where(eq(users.id, <%- userIdExpr %>)).limit(1);
+<%_ } else { -%>
+    const updated = await db.update(users).set({ ...(name && { name }), ...(email && { email }) }).where(eq(users.id, <%- userIdExpr %>)).returning();
+<%_ } -%>
     createSuccessResponse(res, updated[0], StatusCodes.OK, "Profile updated");
 <%_ } -%>
   } catch (e) {
@@ -218,9 +237,9 @@ export const updateProfile = async (req, res) => {
 };
 
 // ── Change Password ───────────────────────────────────────────
-export const changePassword = async (req, res) => {
+export const changePassword = async <%- authHandlerArgs %> => {
   try {
-    <%- findById('user', 'req.userId') %>
+    <%- findById('user', userIdExpr) %>
     if (!user) return createErrorResponse(res, null, StatusCodes.NOT_FOUND, "User not found");
 
     const { current_password = "", new_password } = req.body;
@@ -243,9 +262,9 @@ export const changePassword = async (req, res) => {
     user.password_hash = newHash;
     await user.save();
 <%_ } else if (orm === 'prisma') { -%>
-    await prisma.user.update({ where: { id: req.userId }, data: { passwordHash: newHash } });
+    await prisma.user.update({ where: { id: <%- userIdExpr %> }, data: { passwordHash: newHash } });
 <%_ } else { -%>
-    await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, req.userId));
+    await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, <%- userIdExpr %>));
 <%_ } -%>
 
     createSuccessResponse(res, null, StatusCodes.OK, "Password changed");
@@ -256,7 +275,7 @@ export const changePassword = async (req, res) => {
 
 <%_ if (features.email) { -%>
 // ── Forgot Password ──────────────────────────────────────────
-export const forgotPassword = async (req, res) => {
+export const forgotPassword = async <%- handlerArgs %> => {
   try {
     const { email } = req.body;
     <%- findByEmail('user', 'email') %>
@@ -283,7 +302,7 @@ export const forgotPassword = async (req, res) => {
 };
 
 // ── Validate Reset Token ─────────────────────────────────────
-export const validateResetToken = async (req, res) => {
+export const validateResetToken = async <%- handlerArgs %> => {
   try {
     const { token } = req.body;
     const hashed = crypto.createHash("sha256").update(token).digest("hex");
@@ -310,7 +329,7 @@ export const validateResetToken = async (req, res) => {
 };
 
 // ── Reset Password ───────────────────────────────────────────
-export const resetPassword = async (req, res) => {
+export const resetPassword = async <%- handlerArgs %> => {
   try {
     const { token, password } = req.body;
     const hashed = crypto.createHash("sha256").update(token).digest("hex");
@@ -352,9 +371,9 @@ export const resetPassword = async (req, res) => {
 <%_ } -%>
 
 // ── Delete Account ───────────────────────────────────────────
-export const deleteMyAccount = async (req, res) => {
+export const deleteMyAccount = async <%- authHandlerArgs %> => {
   try {
-    <%- findById('user', 'req.userId') %>
+    <%- findById('user', userIdExpr) %>
     if (!user) return createErrorResponse(res, null, StatusCodes.NOT_FOUND, "User not found");
 
 <%_ if (orm === 'sequelize') { -%>
@@ -375,9 +394,9 @@ export const deleteMyAccount = async (req, res) => {
 <%_ if (orm === 'sequelize') { -%>
     await user.destroy();
 <%_ } else if (orm === 'prisma') { -%>
-    await prisma.user.delete({ where: { id: req.userId } });
+    await prisma.user.delete({ where: { id: <%- userIdExpr %> } });
 <%_ } else { -%>
-    await db.delete(users).where(eq(users.id, req.userId));
+    await db.delete(users).where(eq(users.id, <%- userIdExpr %>));
 <%_ } -%>
 
 <%_ if (authStrategy === 'session') { -%>
@@ -393,7 +412,7 @@ export const deleteMyAccount = async (req, res) => {
 
 <%_ if (features.oauth) { -%>
 // ── Google OAuth ─────────────────────────────────────────────
-export const googleRedirect = (req, res) => {
+export const googleRedirect = (req<%- requestType %>, res<%- responseType %>) => {
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: env.GOOGLE_CALLBACK_URL,
@@ -405,7 +424,7 @@ export const googleRedirect = (req, res) => {
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 };
 
-export const googleCallback = async (req, res) => {
+export const googleCallback = async <%- handlerArgs %> => {
   try {
     const { code } = req.body;
     if (!code) return createErrorResponse(res, null, StatusCodes.BAD_REQUEST, "Authorization code is required");
@@ -472,11 +491,20 @@ export const googleCallback = async (req, res) => {
       if (user) {
         await db.update(users).set({ googleId: googleUser.id }).where(eq(users.id, user.id));
       } else {
+<%_ if (database === 'mysql') { -%>
+        const [{ id }] = await db.insert(users).values({
+          email: googleUser.email,
+          name: googleUser.name || googleUser.email.split("@")[0],
+          googleId: googleUser.id,
+        }).$returningId();
+        [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+<%_ } else { -%>
         [user] = await db.insert(users).values({
           email: googleUser.email,
           name: googleUser.name || googleUser.email.split("@")[0],
           googleId: googleUser.id,
         }).returning();
+<%_ } -%>
       }
     }
 <%_ } -%>

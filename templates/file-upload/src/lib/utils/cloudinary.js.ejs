@@ -11,10 +11,12 @@ cloudinary.config({
 
 const storage = multer.memoryStorage();
 
-export async function imageUploadUtil(file) {
-  const uploadSource = file?.buffer
-    ? `data:${file.mimetype || "application/octet-stream"};base64,${file.buffer.toString("base64")}`
-    : file?.path || file;
+export async function imageUploadUtil(file<%- language === 'typescript' ? ': Express.Multer.File | string' : '' %>) {
+  const uploadSource = typeof file === "string"
+    ? file
+    : file.buffer
+      ? `data:${file.mimetype || "application/octet-stream"};base64,${file.buffer.toString("base64")}`
+      : file.path;
 
   const result = await cloudinary.uploader.upload(uploadSource, {
     resource_type: "auto",

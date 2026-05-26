@@ -5,6 +5,18 @@ import prisma from "#lib/db/connect.<%= ext %>";
 import db from "#lib/db/connect.<%= ext %>";
 <%_ } -%>
 import { mainLogger } from "#lib/logger/winston.<%= ext %>";
+<%_ if (language === 'typescript') { -%>
+import type { Request } from "express";
+
+type AuditLogOptions = {
+  userId: number | null;
+  action: string;
+  entityType: string;
+  entityId?: number | string | null;
+  metadata?: unknown;
+  req?: Request | null;
+};
+<%_ } -%>
 
 /**
  * Write an audit log entry.
@@ -16,7 +28,7 @@ import { mainLogger } from "#lib/logger/winston.<%= ext %>";
  * @param {object|null} opts.metadata
  * @param {import("express").Request} [opts.req]
  */
-export const writeAuditLog = async ({ userId, action, entityType, entityId = null, metadata = null, req = null }) => {
+export const writeAuditLog = async ({ userId, action, entityType, entityId = null, metadata = null, req = null }<%- language === 'typescript' ? ': AuditLogOptions' : '' %>) => {
   try {
     const details = {
       metadata,

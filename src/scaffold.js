@@ -178,6 +178,12 @@ async function generatePackageJson(targetDir, context) {
     },
   };
 
+  if (context.language === 'typescript') {
+    pkg.scripts.typecheck = context.features.database && context.orm === 'prisma'
+      ? 'prisma generate && tsc --noEmit'
+      : 'tsc --noEmit';
+  }
+
   // Add DB scripts
   if (context.features.database) {
     if (context.orm === 'sequelize') {
@@ -361,6 +367,9 @@ async function generateReadme(targetDir, context) {
   if (context.features.testing) {
     lines.push('| `npm test` | Run test suite |');
     lines.push('| `npm run test:coverage` | Run tests with coverage report |');
+  }
+  if (context.language === 'typescript') {
+    lines.push('| `npm run typecheck` | Type-check the project |');
   }
   lines.push('');
 
