@@ -1,135 +1,78 @@
-# create-arc-express
+<p align="center">
+  <a href="https://www.npmjs.com/package/create-arc-express">
+    <img src="./assets/arc-express-logo.png" width="300" height="280" alt="Arc Express logo">
+  </a>
+</p>
 
-Scaffold production-ready Express.js backends with an interactive CLI.
+
+
+<p align="center">
+  <strong>Express API scaffolding with structure, choices, and no framework lock-in.</strong>
+</p>
+
+<p align="center">
+  Choose TypeScript, authentication, database tooling, testing, Docker, and CI during setup.
+</p>
+
+<p align="center">
+  <a href="https://github.com/abdullahiqbal93/arc-express/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/abdullahiqbal93/arc-express/ci.yml?branch=main&label=CI&style=flat-square" alt="CI status"></a>
+  <a href="https://www.npmjs.com/package/create-arc-express"><img src="https://img.shields.io/npm/v/create-arc-express?style=flat-square" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/create-arc-express"><img src="https://img.shields.io/npm/dm/create-arc-express?style=flat-square" alt="npm downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/create-arc-express?style=flat-square" alt="license"></a>
+</p>
+
+<p align="center">
+  <code>npx create-arc-express@latest my-api</code>
+</p>
+
+## Overview
+
+`create-arc-express` is an interactive project generator for Express.js APIs. It starts with a clean backend scaffold, then adds selected feature packs such as authentication, database tooling, testing, Docker, and CI.
+
+The package is intentionally a generator, not a framework. Generated applications are plain Express projects with familiar dependencies, readable structure, and their own setup README.
+
+## Create a Project
 
 ```bash
 npx create-arc-express@latest my-api
 ```
 
-`create-arc-express` generates a ready-to-run Express API with optional authentication, database tooling, testing, Docker Compose, TypeScript, and CI setup.
-
-## Requirements
-
-- Node.js 18 or newer
-- npm 9 or newer recommended
-
-## Quick Start
+Then start the generated app:
 
 ```bash
-npx create-arc-express@latest my-api
 cd my-api
 cp .env.example .env
 npm run dev
 ```
 
-You can also use npm's initializer form:
+## Feature Packs
 
-```bash
-npm create arc-express@latest my-api
-```
-
-The CLI prompts for:
-
-- Project name
 - JavaScript or TypeScript
-- Optional features
-- Authentication strategy: session-based or JWT
-- ORM: Sequelize, Prisma, or Drizzle
-- Database: PostgreSQL or MySQL
-- Dependency installation and git initialization
+- Session-based or JWT authentication
+- Sequelize, Prisma, or Drizzle
+- PostgreSQL or MySQL
+- Google OAuth, SMTP email, file uploads, CSRF protection, and audit logging
+- Docker Compose, Vitest, and GitHub Actions
 
-## Features
+## Design Goals
 
-Every feature is optional unless another selected feature depends on it.
+- Generate a backend that is useful on day one.
+- Keep every optional feature explicit.
+- Prefer standard Express patterns over hidden framework behavior.
+- Leave the generated project easy to inspect, edit, test, and deploy.
 
-| Feature | Description |
-| --- | --- |
-| Authentication | Register, login, password reset, route guards, rate limiting |
-| Database | Sequelize, Prisma, or Drizzle with PostgreSQL or MySQL |
-| Google OAuth | Google OAuth 2.0 login flow |
-| Email | Nodemailer SMTP utility for transactional email |
-| File Upload | Cloudinary and Multer integration |
-| CSRF Protection | Double-submit cookie CSRF protection |
-| Audit Logging | Database-backed user action logs |
-| Docker Compose | PostgreSQL/MySQL and Redis services |
-| Testing | Vitest, Supertest, coverage, and test setup helpers |
-| GitHub Actions | Node.js CI matrix for install, lint, typecheck, and tests |
-| TypeScript | Strict TypeScript setup with `tsx` |
+## Requirements
 
-## Generated Project
+Node.js 18 or newer is required.
 
-A generated app includes a modular API layout, centralized configuration, standardized response helpers, request validation, sanitization, logging, and optional feature-specific infrastructure.
+## Contributing
 
-Representative structure:
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
-```text
-my-api/
-|-- src/
-|   |-- app.js
-|   |-- api/
-|   |   |-- index.js
-|   |   |-- status/
-|   |   `-- auth/
-|   |-- db/
-|   `-- lib/
-|       |-- config.js
-|       |-- server.js
-|       |-- logger/
-|       |-- middlewares/
-|       |-- services/
-|       `-- utils/
-|-- .env.example
-|-- package.json
-|-- docker-compose.yml
-|-- vitest.config.js
-`-- README.md
-```
+## Security
 
-## Common Generated Scripts
-
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the development server with reload/watch mode |
-| `npm start` | Start the server |
-| `npm run lint` | Lint generated source files |
-| `npm run format` | Format generated source files |
-| `npm run typecheck` | Type-check TypeScript projects |
-| `npm run db:migrate` | Run database migrations when a database is selected |
-| `npm run db:seed` | Seed the database when a database is selected |
-| `npm test` | Run tests when testing is selected |
-| `npm run test:coverage` | Run tests with coverage when testing is selected |
-
-## Local Development
-
-Clone this repository when you want to work on the generator itself.
-
-```bash
-git clone https://github.com/abdullahiqbal93/arc-express.git
-cd arc-express
-npm install
-npm run dev -- test-project
-```
-
-Run the generator test suites:
-
-```bash
-npm test
-npm run test:render-matrix
-npm run test:combos
-```
-
-`npm run test:combos` scaffolds, installs, type-checks, and boots multiple generated project combinations. It can take several minutes.
-
-## Package Contents
-
-The published npm package includes:
-
-- `bin/` - CLI executable
-- `src/` - prompt, scaffold, dependency, and output logic
-- `templates/` - generated project templates
-- `README.md`
-- `LICENSE`
+Please report security vulnerabilities through GitHub Security Advisories instead of public issues.
 
 ## License
 
-MIT
+`create-arc-express` is open-source software licensed under the [MIT license](LICENSE).
